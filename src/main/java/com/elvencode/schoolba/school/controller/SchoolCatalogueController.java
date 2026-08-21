@@ -16,7 +16,7 @@ public class SchoolCatalogueController {
         this.schoolCatalogueService = schoolCatalogueService;
     }
 
-    @GetMapping
+    @GetMapping(version = "1.0+")
     public SchoolCatalogueResponse getCatalogue() {
         return schoolCatalogueService.getCatalogue();
     }
