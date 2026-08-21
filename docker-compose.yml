@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: school-ba-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: school_db
+      POSTGRES_USER: elven_user
+      POSTGRES_PASSWORD: elven_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - school-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U elven_user -d school_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  school-postgres-data:
