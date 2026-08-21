@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/school/profile")
+@RequestMapping("/school/profile")
 public class SchoolProfileController {
 
     private final SchoolProfileService schoolProfileService;
