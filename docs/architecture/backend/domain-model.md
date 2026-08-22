@@ -58,6 +58,12 @@ enter the user-role graph.
 | Record | Required model constraints |
 | --- | --- |
 | Account | Immutable `STAFF` or `STUDENT` type; server-managed lifecycle and authorization version |
+| Account contact | Verified active contact may be a login identifier; retired contacts remain historical |
+| Password credential | One active BCrypt password credential per account; secret is stored only as a hash and credential revision participates in session validation |
+| MFA factor | Account-bound pending, active, or revoked factor; staff sign-in requires an active factor and factor-specific verification |
+| Auth challenge | Hashed, single-use, expiring challenge for MFA, recovery, or comparable proof-of-control workflow |
+| Auth session | Revocable server record with account ID, authorization/credential versions, idle and absolute expiry, and lifecycle state |
+| Refresh token history | Hashed opaque token records linked to one session; `ACTIVE`, `REPLACED`, `REVOKED`, and `EXPIRED` states support rotation and replay detection |
 | Permission | Immutable seed key, scope category, and delegation policy |
 | Role | Immutable scope and branch binding; `ACTIVE` or irreversibly `INACTIVE`; role-policy revision |
 | Role assignment | Immutable user/role/scope/branch binding; `ACTIVE` or irreversibly `ENDED` |
@@ -79,6 +85,23 @@ permit duplicates.
 Assignment records and ownership are historical facts. They are ended, never mutated or
 reactivated. Role scope, role branch, account type, and service policy are likewise not
 generic update fields.
+
+## Implemented login relationship
+
+```mermaid
+flowchart LR
+    AC[Account contact] --> A[User account]
+    A --> C[Password credential]
+    A --> M[MFA factor]
+    A --> S[Auth session]
+    S --> R[Refresh token history]
+    A --> E[Authentication event]
+```
+
+Login looks up an active verified login contact, verifies one active password credential,
+and creates a session only after the account type's authentication requirements are met.
+Student password login currently establishes the session. Staff password login instead
+creates an MFA challenge until factor verification is delivered.
 
 ## Branch ownership
 

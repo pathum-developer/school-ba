@@ -43,6 +43,32 @@ credentials, an immutable explicit service policy, a fixed branch context, and t
 authorization and policy revisions. They cannot hold user roles or control-plane
 permissions.
 
+## Authentication transport and session state
+
+The implemented login foundation uses a hybrid model:
+
+- A password credential is verified by an `AuthenticationProvider`; passwords are BCrypt
+  hashes and login failures use a generic response and an equivalent dummy BCrypt check for
+  unknown identifiers.
+- A successful student password login creates an `auth_session`, an `authentication_event`,
+  and an `auth_refresh_token` row. Refresh tokens are random opaque values; only their
+  SHA-256 hashes are stored.
+- The response has a short-lived JWT access token and a separate HttpOnly refresh cookie.
+  The access JWT includes account/session IDs and current authorization and credential
+  versions, but never roles, scopes, permissions, or personal data.
+- Every bearer-token request is checked against the signed JWT, an active non-expired
+  `auth_session`, an active `user_account`, and matching session/account authorization and
+  credential versions. Deactivation, credential changes, session revocation, and version
+  changes therefore take effect before subsequent requests.
+- Staff password verification is only the first authentication step. An active MFA factor
+  creates a five-minute opaque challenge; an account without one is denied with
+  `MFA_ENROLLMENT_REQUIRED`. No staff access token is issued before MFA verification.
+
+Access-token and session lifetimes are configuration, not API constants: their defaults are
+ten minutes, seven days idle, and thirty days absolute. The refresh-token history table is
+present so the refresh workflow can rotate tokens and treat replay as a session-family
+security event; that endpoint is not implemented yet.
+
 ## Permission and scope contract
 
 Permissions are immutable seed records. Their prefix fixes where they are valid:
@@ -164,5 +190,7 @@ or delete.
 - `common` may hold genuinely shared security errors or value types but must not become a
   second auth domain.
 
-Credential transport, session format, MFA technology, and concrete endpoint contracts are
-still open; see [backend open questions](open-questions.md#blocking-before-authenticated-features).
+The approved staff MFA factor, factor verification workflow, refresh/logout endpoints,
+session activity renewal policy, recovery controls, and concrete permission enforcement are
+still open or not yet implemented; see
+[backend open questions](open-questions.md#blocking-before-authenticated-features).

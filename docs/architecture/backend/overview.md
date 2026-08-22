@@ -22,7 +22,7 @@ The first backend slice should close that gap before building larger portal feat
 ## Suggested Build Order
 
 1. Public trial-booking submission.
-2. Authentication foundation: immutable account types, credentials, MFA, sessions, and default-deny security wiring.
+2. Authentication foundation: immutable account types, credentials, MFA, sessions, default-deny security wiring, and the implemented password-login/session issuance path.
 3. Versioned permission/protected-role seed manifest and one-time `school_super_admin` bootstrap.
 4. Minimum staff invitation, branch assignment, and role-assignment workflows needed to authorize branch staff.
 5. Branch-scoped callback queue and booking claim, dismiss, and conversion flow.

@@ -20,12 +20,13 @@ Backend-specific open questions. Product-level questions remain in `../business-
 
 ## Blocking Before Authenticated Features
 
-The administration requirements define the security policy. These implementation and
-operational choices remain open and must be settled before login or protected APIs ship:
+The administration requirements define the security policy. Password login, JWT access
+transport, server-side session records, and hashed refresh-token history are implemented.
+The following choices remain before full staff sign-in and protected workflows ship:
 
 9. What verified contact and login identifier does each account type use: email, mobile number, or both?
-10. Are browser sessions implemented with server-backed secure cookies or access/refresh tokens, and what are their idle, absolute, and rotation lifetimes?
-11. Which MFA methods are approved for staff, and what counts as recent reauthentication for a control-plane action?
-12. Which out-of-band channels and identity checks are approved for staff invitation, credential recovery, MFA recovery, verified-contact changes, and student portal invitations?
-13. Where are principal authorization versions, role-policy revisions, session revocations, and replay protection stored so every application instance observes changes immediately?
+10. Which MFA methods are approved for staff, and what counts as recent reauthentication for a control-plane action? The password step currently creates a challenge but no factor verifier exists.
+11. Which out-of-band channels and identity checks are approved for staff invitation, credential recovery, MFA recovery, verified-contact changes, and student portal invitations?
+12. What refresh-token rotation, reuse-detection response, logout behavior, and idle-session renewal policy should be applied? The hash history schema exists, but refresh and logout endpoints do not.
+13. How are role-policy revisions incorporated into protected permission checks after the role services are delivered? Account and session authorization/credential versions are already checked on every bearer-token request.
 14. What retention and access policy applies to authentication events, invitation history, ended assignments, and the append-only audit log?

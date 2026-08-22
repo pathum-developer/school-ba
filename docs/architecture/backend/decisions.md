@@ -44,3 +44,34 @@ Consequences:
   invalidation, so revocation takes effect before a later sensitive commit.
 - Keep credential transport, session format, MFA technology, and endpoint contracts as
   explicit implementation decisions; the policy does not choose them.
+
+## ADR-003: Hybrid Access JWT and Revocable Server Session
+
+Date: 2026-08-22
+
+Decision: Use a short-lived signed JWT only as an access-token transport. Each JWT is
+bound to a server-side `auth_session`; a high-entropy opaque refresh token is stored only
+in a secure HttpOnly cookie and persisted as a SHA-256 hash. The database retains refresh
+token history so later rotation can detect replay.
+
+Reason: The reference project's separation of controller, service, authentication
+provider, security filter, and configuration is a good fit for this API. Its fully
+stateless, long-lived JWT model is not sufficient for immediate account/session
+revocation, current authorization checks, or staff MFA policy.
+
+Consequences:
+
+- Access JWTs contain only issuer/audience, account ID, session ID, authorization version,
+  credential version, issued/expiry timestamps, token ID, and key ID. They contain no
+  roles, permissions, scopes, or personal data.
+- The request filter verifies the token signature and expected issuer/audience/key ID, then
+  loads the active session and account and compares both current versions before creating a
+  principal.
+- `POST /api/auth/login` establishes a student password session. A staff password check
+  creates a short-lived MFA challenge or returns `MFA_ENROLLMENT_REQUIRED`; it never issues
+  an unrestricted staff token.
+- JWT signing material must be supplied through `SCHOOL_SECURITY_JWT_SECRET`; no source
+  fallback is permitted. The default access-token TTL is ten minutes, session idle TTL is
+  seven days, and absolute TTL is thirty days, all configurable by environment.
+- MFA verification, refresh-token rotation/reuse detection, logout, and protected
+  permission enforcement remain separate follow-up workflows.

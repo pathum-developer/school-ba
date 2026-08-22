@@ -116,11 +116,78 @@ Use a consistent validation response, for example:
 
 Keep user-facing translation in the frontend. Backend messages are developer/debug oriented unless the API contract later decides otherwise.
 
-## Protected Contract Rules
+## Authentication
 
-Authentication endpoint paths, credential fields, session transport, token lifetimes, and
-MFA challenge payloads are intentionally not specified yet. They depend on the decisions
-recorded in [open questions](open-questions.md#blocking-before-authenticated-features).
+### Password login
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+Request body:
+
+```json
+{
+  "identifier": "student@example.com",
+  "password": "user supplied password"
+}
+```
+
+`identifier` is the canonical, verified login identifier stored in `account_contact`.
+The API trims and lowercases it before lookup. Client applications must not log the
+password, access token, challenge token, or refresh cookie.
+
+A successful student login returns `200 OK`, an access token in the JSON body, and a
+`school_refresh` cookie. The cookie is HttpOnly, Secure by default, SameSite=Strict, scoped
+to `/api/auth`, and never exposed in a JSON response.
+
+```json
+{
+  "accessToken": "eyJ...",
+  "tokenType": "Bearer",
+  "expiresIn": 600
+}
+```
+
+The access token is an opaque-to-client JWT transport value. Send it as
+`Authorization: Bearer <accessToken>` and retain it only in application memory. It has no
+roles, permissions, scopes, or personal data.
+
+For a staff account with an active MFA factor, the password step returns `202 Accepted` and
+a one-time short-lived challenge rather than a session:
+
+```json
+{
+  "status": "mfa_required",
+  "challengeToken": "opaque challenge token",
+  "expiresAt": "2026-08-22T10:00:00Z"
+}
+```
+
+The factor-specific verification endpoint is not implemented yet. A staff account without
+an active factor receives `403` with `MFA_ENROLLMENT_REQUIRED`; invalid credentials always
+receive the generic `401` response below.
+
+```json
+{
+  "code": "AUTHENTICATION_FAILED",
+  "message": "Authentication failed."
+}
+```
+
+### CSRF bootstrap
+
+```http
+GET /api/auth/csrf
+```
+
+This returns the token and header name required by future cookie-authenticated mutations.
+`POST /api/auth/login` is intentionally exempt because it uses a JSON body, has no existing
+browser session, and CORS is restricted to configured frontend origins. Refresh and logout
+endpoints must require CSRF protection when they are added.
+
+## Protected Contract Rules
 
 All future protected contracts must follow these rules:
 
@@ -158,5 +225,4 @@ The frontend currently has these structural datasets in `src/data/school.ts`:
 - `faqs`
 
 When moved behind the API, return language-independent record fields plus localized copy for the requested locale. Preserve relationships by id.
-
 
