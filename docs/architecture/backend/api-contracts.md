@@ -116,6 +116,32 @@ Use a consistent validation response, for example:
 
 Keep user-facing translation in the frontend. Backend messages are developer/debug oriented unless the API contract later decides otherwise.
 
+## Protected Contract Rules
+
+Authentication endpoint paths, credential fields, session transport, token lifetimes, and
+MFA challenge payloads are intentionally not specified yet. They depend on the decisions
+recorded in [open questions](open-questions.md#blocking-before-authenticated-features).
+
+All future protected contracts must follow these rules:
+
+- Default to deny when an endpoint has no explicit permission-and-target-scope policy.
+- Return effective grants separated by `SCHOOL`, exact `BRANCH`, and `SELF` context during
+  session bootstrap. Preserve individual grant boundaries where an operation requires one
+  authorizing role; do not reduce a multi-role account to one role name or one flat scope.
+- Treat client branch, scope, role, user, and student identifiers only as request data. The
+  server loads the target record and resolves authorization from stored ownership and
+  active assignments.
+- Reject access-control fields in generic user, staff, student, branch, or role updates.
+  Account lifecycle, verified-contact changes, branch assignments, role assignments,
+  transfers, and protected-role changes require dedicated endpoints and permissions.
+- Do not accept lifecycle state from ordinary create or update payloads where the server
+  owns that state.
+- Revalidate the current principal authorization version and relevant role-policy revision
+  before a sensitive transaction commits.
+- Use a consistent `401` response for failed authentication and `403` for an authenticated
+  principal without a complete matching permission-and-scope grant. Resource-not-found
+  behavior may intentionally conceal inaccessible records but must be consistent per API.
+
 ## Catalogue Data
 
 The frontend currently has these structural datasets in `src/data/school.ts`:

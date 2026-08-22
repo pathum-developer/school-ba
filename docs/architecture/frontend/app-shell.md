@@ -4,8 +4,10 @@
 
 > **Status: proposal.** None of this is built. The application today is a single public
 > page with no router, no authentication and no session state. Who the users are and what
-> they may do is in
-> [business requirements → roles and permissions](../business-requirements/roles-and-permissions.md).
+> they may do is summarized in
+> [roles and permissions](../business-requirements/roles-and-permissions.md); the
+> [administration requirements](../business-requirements/administration-requirements.md)
+> are authoritative for account and authorization behavior.
 
 ## Verdict on the proposed layout
 
@@ -75,7 +77,7 @@ Students / Nimali Perera / Lesson 12
 ```
 
 The public site already has this pattern in
-[`Section`](../../../src/components/home/Section.tsx) — one component fixing heading
+[`Section`](../../../../school-ui/src/components/home/Section.tsx) — one component fixing heading
 rhythm so every page lines up without positioning its own title. The app wants the same
 component, with an actions slot.
 
@@ -84,13 +86,15 @@ component, with an actions slot.
 The mockup's top bar has logo, search, notifications and avatar. For this application that
 is missing the thing staff most need to see: **which branch am I acting in?**
 
-Branch staff are scoped to one branch. School staff can see all four and will spend their
-day switching. If that context is not on screen at all times, someone will eventually
-enrol a student at the wrong branch. The top bar should carry:
+Staff can hold different branch-scoped roles in several assigned branches and may also hold
+a school-scoped role. The active working context must therefore stay visible. If it is not
+on screen, someone will eventually enrol a student at the wrong branch. Selecting a
+context changes what the UI is working on; it never creates authority or merges grants
+from different roles. The top bar should carry:
 
 | Element | Why |
 | --- | --- |
-| Branch context | Scoped roles show it as a label; `all` scope shows a switcher |
+| Working context | Student `SELF`, staff `SCHOOL`, or one exact authorized branch; `SCHOOL` may add a branch focus filter that grants no authority |
 | Language switcher | The trilingual requirement does not stop at login — see below |
 | Notifications | Booking callbacks are time-critical ([BR-05](../business-requirements/domain-and-rules.md#booking)) |
 | Account menu | Profile, theme, sign out |
@@ -99,7 +103,7 @@ enrol a student at the wrong branch. The top bar should carry:
 **Language must carry into the app.** The public site is fully trilingual and the school
 teaches in all three languages, so a Tamil-reading student meeting an English-only
 dashboard the moment they sign in is the requirement failing at the last step.
-[`LanguageSwitcher`](../../../src/components/home/LanguageSwitcher.tsx) already exists and
+[`LanguageSwitcher`](../../../../school-ui/src/components/home/LanguageSwitcher.tsx) already exists and
 already persists across visits.
 
 ## Shell anatomy
@@ -118,30 +122,41 @@ already persists across visits.
 └────────┴─────────────────────────────────────────────┘
 ```
 
-Only the content region re-renders between pages. The shell holds session, permissions and
-navigation state, so switching pages never re-fetches who you are.
+Only the content region re-renders between pages. The shell holds session identity,
+scope-separated effective grants, authorized working contexts, and navigation state, so
+switching pages does not re-fetch who you are. Protected data remains server state and is
+keyed by the active context.
 
 ## Navigation is data, not markup
 
-Declare destinations as a list, each carrying the permission that reveals it, and render
-by filtering. Never build one sidebar per role — with four roles that is four sidebars to
-keep in step, and they will drift.
+Declare destinations as a list, each carrying the permission and context it requires, and
+render by filtering. Never build one sidebar per persona or role bundle; configurable
+roles and multi-branch assignments would make those sidebars drift immediately.
 
 ```ts
+type AuthorizationContext =
+    | { scope: 'SCHOOL'; focusBranchId?: string }
+    | { scope: 'BRANCH'; branchId: string }
+    | { scope: 'SELF' };
+
 interface NavItem {
     to: string;
-    labelKey: string;        // i18next key, never a literal
+    labelKey: string;             // i18next key, never a literal
     icon: ComponentType;
-    permission: Permission;  // what reveals it
+    permission: Permission;
+    context: 'ACTIVE' | 'SELF' | 'SCHOOL';
     group: 'primary' | 'secondary' | 'account';
 }
 ```
 
-Filtering one list against the session's permissions gives every role a correct sidebar for
-free, and a new role is a permission grant rather than a code change. Because
-[permissions are checked, not roles](../business-requirements/roles-and-permissions.md#model-permissions-not-roles),
-a branch manager introduced later inherits the right navigation without anyone editing
-this file.
+Filtering one list with `useCan(permission, resolvedContext)` gives each session the right
+navigation without branching on a role name. The session cannot be represented by one flat
+permission array: `CO_STUDENT_VIEW` may be effective at `SCHOOL`, at one `BRANCH`, at
+several branches, or in none. A new ordinary role changes effective grants rather than
+frontend code. Preserve individual grant boundaries; `useCan` must not combine a
+permission from one role grant with scope or delegation rights from another. A school
+focus branch filters the view but leaves the authorization scope as `SCHOOL`. See the
+[authorization model](../business-requirements/roles-and-permissions.md#authorization-model).
 
 Two rules that keep it honest:
 
@@ -149,19 +164,21 @@ Two rules that keep it honest:
 - **Empty groups collapse.** A student with nothing in `secondary` should not see its
   divider.
 
-### Where each role lands
+### Where each working context lands
 
-Signing in should land on the answer to that role's main question, not on a generic
-dashboard:
+Signing in should land on the most relevant authorized destination in the selected working
+context, not on a generic dashboard:
 
-| Role | Landing page | Because |
+| Context/persona | Landing page | Because |
 | --- | --- | --- |
-| Student | Next lesson | The one thing they signed in to check |
-| Instructor | Today's schedule | Their whole job, in one list |
-| Branch staff | Callback queue | Time-critical, and the promise the business made |
-| School staff | Cross-branch overview | The only role with a genuine dashboard need |
+| Student `SELF` | Next lesson | The one thing the student signed in to check |
+| Instructor in a `BRANCH` | Today's assigned schedule | Their whole job, in one list |
+| Branch operations in a `BRANCH` | Callback queue | Time-critical, and the promise the business made |
+| `SCHOOL` | Cross-branch overview | School-scoped work needs an all-branch view |
 
-The root path resolves per role rather than being a fixed dashboard everyone shares.
+If staff have several usable contexts, restore the last still-authorized context or ask
+them to choose. The root path resolves from effective grants and active context, never a
+single role name. A remembered branch ID must be revalidated against each new session.
 
 ## Enforcing access
 
@@ -200,9 +217,9 @@ small effort.
 Two consequences worth planning for:
 
 **The phone tab bar needs a hard cap of five.** More than that and the labels stop fitting.
-Each role's navigation therefore needs a declared priority order: the top four or five
+Each persona and working context therefore needs a declared priority order: the top four or five
 destinations become tabs, everything else goes behind a "More" entry that opens a drawer.
-That priority is a product decision per role, not something to derive from list order by
+That priority is a product decision per context, not something to derive from list order by
 accident.
 
 **The rail still needs labels on touch.** At tablet width, show the label on press-and-hold
@@ -213,13 +230,13 @@ worked example on screen tying an icon to its meaning.
 
 Three pieces of this are in the codebase today:
 
-- [`MobileCtaBar`](../../../src/components/home/MobileCtaBar.tsx) is the public site's
+- [`MobileCtaBar`](../../../../school-ui/src/components/home/MobileCtaBar.tsx) is the public site's
   phone-only bottom bar. The authenticated tab bar is its direct sibling — same position,
   same reasoning, and `App` already carries the `pb-20 sm:pb-0` pattern that keeps content
   clear of it.
-- [`Drawer`](../../../src/components/ui/drawer.tsx) already backs the mobile menu in
+- [`Drawer`](../../../../school-ui/src/components/ui/drawer.tsx) already backs the mobile menu in
   `SiteHeader`, and can back the "More" overflow unchanged.
-- [`useMediaQuery`](../../../src/hooks/useMediaQuery.ts) exists precisely for switching on
+- [`useMediaQuery`](../../../../school-ui/src/hooks/useMediaQuery.ts) exists precisely for switching on
   a breakpoint in JavaScript rather than a CSS class — which is what choosing between three
   different nav components requires.
 
@@ -237,9 +254,10 @@ its body lifts into a public route and the shell becomes a second route tree.
 **Session and permissions are genuinely global state.**
 [State and data](state-and-data.md#state-strategy) records a deliberate decision — local
 `useState`, no store, revisit when server state arrives. **This is that moment.** Session
-identity and permissions are read almost everywhere and owned by nobody in particular,
-which is exactly the case local state handles badly. Revisit it as a decision rather than
-letting a global sneak in through a context that grows.
+identity, scope-separated grants, usable branch contexts, and the active context are read
+almost everywhere and owned by nobody in particular. Revisit state management as a
+decision rather than letting a global store emerge accidentally. The client must never
+combine a permission from one grant with scope from another.
 
 **Loading and error states become unavoidable.** Every page will fetch. Standardise the
 skeleton and the error state in the page-header component, or eight pages will each invent
@@ -257,7 +275,7 @@ done at the end of a ticket.
 Nothing about the visual design needs to change: the token system, `cn`, dark mode and the
 PrimeReact Tailwind-mode components all carry over unchanged. `Avatar`, `Drawer`,
 `Divider`, `Tabs`, `Timeline` and `Toast` already exist in
-[`components/ui/`](../../../src/components/ui/).
+[`components/ui/`](../../../../school-ui/src/components/ui/).
 
 ## PrimeReact component map
 
@@ -293,7 +311,7 @@ npx shadcn@latest add https://primereact.dev/r/sidebar.json \
     https://primereact.dev/r/breadcrumb.json
 ```
 
-All three needed the fix-ups the [README](../../../README.md) already documents: type-only
+All three needed the fix-ups the [frontend README](../../../../school-ui/README.md) already documents: type-only
 imports marked for `verbatimModuleSyntax`, and the unused `import * as React` removed for
 `noUnusedLocals`.
 
@@ -309,7 +327,7 @@ src/
 │   ├── PageHeader.tsx     # title, breadcrumb, actions
 │   └── navigation.ts      # the nav list — data, permission-tagged
 └── auth/
-    ├── permissions.ts     # Permission union, Scope, Session
+    ├── permissions.ts     # Permission union, Scope, EffectiveGrant, Session
     └── useSession.ts      # session context, useCan()
 ```
 
@@ -319,15 +337,18 @@ choice is deliberately left open.
 
 ## Suggested build order
 
-1. **Callback queue for branch staff.** Smallest slice that closes
+1. **Sign-in, MFA challenge, session bootstrap, and the permission-aware shell.** This
+   follows the backend seed manifest, first-super-admin bootstrap, and minimum staff
+   invitation/assignment workflows; it must not invent a temporary role-name bypass.
+2. **Callback queue for authorized branch staff.** Smallest operational slice that closes
    [FR-208](../business-requirements/functional-requirements.md#lead-capture) and makes the
-   public site's two-hour promise real. It needs the shell, auth, one permission and one
-   list — and it delivers business value on day one.
-2. Enrolment and student records.
-3. Scheduling, attendance, instructor assignment.
-4. Payments and instalments.
-5. Student portal.
-6. School-staff administration and reporting.
+   public site's two-hour promise real. It needs one seeded operational permission and an
+   explicit booking-branch policy.
+3. Enrolment, student records, profile lifecycle, and verified contacts.
+4. Scheduling, attendance, instructor assignment.
+5. Payments and instalments.
+6. Student portal invitation, account binding, and self-service.
+7. Remaining school administration and reporting.
 
 Starting with the student portal is tempting because it is the most visible, but it depends
 on students existing in the system, which depends on enrolment, which depends on the

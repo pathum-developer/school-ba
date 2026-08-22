@@ -15,8 +15,9 @@ are about to change code.
 ## Scope of these documents
 
 These describe **structure and rationale**, not usage. Setup instructions, scripts and
-day-to-day commands live in the [root README](../../README.md); assistant-specific rules
-live in [CLAUDE.md](../../CLAUDE.md).
+day-to-day commands live in the [frontend README](../../../school-ui/README.md);
+frontend-specific assistant rules live in
+[CLAUDE.md](../../../school-ui/CLAUDE.md).
 
 A document here should answer one of:
 
@@ -30,6 +31,10 @@ comment instead.
 
 ## A note on the business requirements
 
-They were **reconstructed from the built product**, not supplied by the business. They are
-a draft for validation and are marked as such throughout — see the provenance note at the
-top of [business-requirements/README.md](business-requirements/README.md).
+The public-product requirements were **reconstructed from the built product**, not
+supplied by the business. They remain a draft for validation and are marked as such
+throughout. The [administration requirements](business-requirements/administration-requirements.md)
+are different: they define the target account, authorization, lifecycle, and administrative
+security policy. Treat that document as authoritative for those concerns even though the
+authenticated product is not implemented yet. See the provenance note in
+[business requirements](business-requirements/README.md) for the distinction.

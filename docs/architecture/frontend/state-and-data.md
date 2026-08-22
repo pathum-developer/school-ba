@@ -30,9 +30,31 @@ default.
 its upper half so a section counts as active once its heading is comfortably on screen. No
 scroll handler, no layout thrash.
 
+## Authenticated state (future)
+
+The current public page has no session state. When the
+[authenticated shell](app-shell.md) is built, session bootstrap becomes shared server
+state and must follow the
+[administration requirements](../business-requirements/administration-requirements.md).
+The client needs identity, immutable account type, effective grants separated by scope and
+branch, usable working contexts, and enough session metadata to react to invalidation. One
+role name or one flat permission array cannot represent the authorization model.
+
+The selected branch is user-interface context, not authority. Queries and cache keys must
+include the resolved `SCHOOL`, exact `BRANCH`, or `SELF` authorization context and any
+school-scope branch focus filter. A focus filter never converts a school grant into a
+branch grant. Changing context must not reuse protected data fetched under another context
+unless the new request is independently authorized. Sign-out, session invalidation, or an
+authorization-revision failure clears protected cached data.
+
+Do not persist credentials, MFA challenges, portal invitation tokens, or authorization
+grants in `localStorage`. The final session transport is still an explicit backend
+decision. Invitation tokens should remain transient, be redeemed once, and be removed from
+the visible URL/history flow as soon as redemption starts.
+
 ## The content layer
 
-[`src/data/school.ts`](../../../src/data/school.ts) holds the site's structural content:
+[`src/data/school.ts`](../../../../school-ui/src/data/school.ts) holds the site's structural content:
 `school`, `courses`, `packages`, `branches`, `journey`, `resources`, `testimonials`, `faqs`,
 `stats` and `licenceClasses`.
 
@@ -84,7 +106,7 @@ recorded here, rather than by accretion.
 
 ## The booking form
 
-[`BookingCard.tsx`](../../../src/components/home/BookingCard.tsx) is the only interactive
+[`BookingCard.tsx`](../../../../school-ui/src/components/home/BookingCard.tsx) is the only interactive
 feature and the closest thing to business logic in the app:
 
 - Option lists are rebuilt via `useMemo` keyed on `t`, because labels are translated —

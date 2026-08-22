@@ -9,8 +9,8 @@ honour, and what is promised to a visitor.
 >
 > **These requirements were reconstructed from the built product**, not handed down from
 > the business. Every statement here was derived from the implemented UI and the content
-> catalogue in [`src/locales/en.json`](../../../src/locales/en.json) and
-> [`src/data/school.ts`](../../../src/data/school.ts).
+> catalogue in [`src/locales/en.json`](../../../../school-ui/src/locales/en.json) and
+> [`src/data/school.ts`](../../../../school-ui/src/data/school.ts).
 >
 > That makes this a **draft for validation, not a signed-off specification.** Where the
 > product states a commercial or regulatory commitment — pass rates, callback times,
@@ -18,6 +18,12 @@ honour, and what is promised to a visitor.
 > visitors*. It does not verify that the business can or does honour it. Confirm each one
 > before treating it as a requirement, and see [Open questions](open-questions.md) for the
 > items that most need an answer.
+
+The [administration requirements](administration-requirements.md) are not a reconstruction
+of the current public UI. They are the authoritative target policy for accounts,
+permissions, scope, role and branch assignments, lifecycle workflows, and administrative
+security. The authenticated application remains unbuilt, but architecture and future code
+must use that policy rather than infer access rules from the current frontend.
 
 ## Documents
 
@@ -27,7 +33,8 @@ honour, and what is promised to a visitor.
 | [Functional requirements](functional-requirements.md) | Numbered `FR-*` catalogue, each with build status |
 | [Domain and business rules](domain-and-rules.md) | Entities, the real catalogue values, numbered `BR-*` rules |
 | [Non-functional requirements](non-functional.md) | Language parity, accessibility, privacy, performance |
-| [Roles and permissions](roles-and-permissions.md) | *Proposal* — who signs in, what each role does, how access is modelled |
+| [Administration requirements](administration-requirements.md) | Authoritative account, permission, scope, role, lifecycle, and administrative security policy |
+| [Roles and permissions](roles-and-permissions.md) | Operational personas and a concise guide to the authoritative authorization model |
 | [Open questions](open-questions.md) | Decisions the business must make before this site takes real leads |
 
 Implementation lives one folder over, in [frontend architecture](../frontend/README.md).
@@ -72,3 +79,4 @@ single largest gap between what visitors are promised and what the system does.
 | Learning hub | Listing built; **resources have no destinations** |
 | Legal pages, social profiles | **Placeholder links** |
 | Student portal, payments, scheduling | Not built, referenced in copy |
+| Staff/student authentication and administration | Requirements defined; not built |

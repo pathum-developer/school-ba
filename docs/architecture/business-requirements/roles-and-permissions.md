@@ -1,159 +1,177 @@
 # Roles and permissions
 
-[← Business requirements](README.md)
+[<- Business requirements](README.md)
 
-> **Status: proposal.** Nothing here is built — there is no authentication in the codebase
-> today. This is a design for validation, and several points below are assumptions marked
-> as such. The layout that renders it is in
-> [frontend → app shell](../frontend/app-shell.md).
+> **Status: target model, not implemented.**
+> [Administration requirements](administration-requirements.md) is authoritative for
+> account types, permissions, scopes, assignments, lifecycle workflows, delegation, and
+> authorization enforcement. This document translates that policy into product personas
+> and application behavior without redefining it.
 
-## The roles
+## Account types and operational personas
 
-Three were named: **student**, **school staff**, **branch staff**. Working through what
-each actually does surfaces a fourth.
+There are exactly two immutable account types: `STAFF` and `STUDENT`. Instructor, branch
+staff, and school staff describe work people perform; they are not account types and must
+not become hard-coded authorization branches.
 
-| Role | Frequency of use | Primary device | Scope |
+| Persona | Account type | Typical authorization | Primary need |
 | --- | --- | --- | --- |
-| **Student** | Weekly or less | Phone | Only their own record |
-| **Instructor** *(assumed)* | Daily | Phone | Their own assigned lessons |
-| **Branch staff** | All day | Desk + phone | One branch |
-| **School staff** | Daily | Desk | All branches |
+| Student | `STUDENT` | Protected `student_default` role at `SELF` scope | Their own lessons, progress, payments, and resources |
+| Instructor *(still to confirm)* | `STAFF` | Ordinary staff role at `BRANCH` scope | Assigned lessons and student progress in an assigned branch |
+| Branch staff | `STAFF` | One or more roles at `BRANCH` scope | Operate one or more specifically assigned branches |
+| School staff | `STAFF` | One or more roles at `SCHOOL` scope | Authorized work across all branches |
 
-**The instructor role is an inference, not something you named.** The published content
-commits to instructor-level behaviour repeatedly — the same instructor for every lesson
-([BR-14](domain-and-rules.md#service-delivery)), requesting a specific or female
-instructor ([BR-15](domain-and-rules.md#service-delivery)), an instructor who drives the
-student to the test ground and runs a rehearsal ([BR-13](domain-and-rules.md#service-delivery)).
-Someone has to see that schedule. If instructors are meant to work from a paper sheet or a
-branch coordinator's screen, say so — it is a legitimate answer, and it removes a role.
+A staff member can hold different roles in different branches and can also hold a
+school-scoped role. Being assigned to a branch identifies where the staff member may work,
+but grants no data access by itself. Being assigned to every branch does not create
+`SCHOOL` scope.
 
-## What each role needs to do
+`SELF` is reserved for the linked student account and the protected `student_default`
+role. An instructor is staff, so "my assigned lessons" must be enforced as a branch-scoped
+resource rule; it must not reuse student `SELF` scope.
 
-Written as jobs rather than screens, because the screens follow from these.
+## What each persona needs to do
 
-**Student** — *"Am I on track, and what do I owe?"*
-Next lesson and where. Lessons used against lessons bought. Reschedule, subject to the
-12-hour rule ([BR-12](domain-and-rules.md#service-delivery)). Instalment status and what
-falls due next ([BR-08](domain-and-rules.md#commercial), [BR-09](domain-and-rules.md#commercial)).
-Position in the six-step journey. The learning hub — mock papers and videos, which the
-copy promises free to every enrolled student
-([FR-502](functional-requirements.md#referenced-but-not-built)). Their trial-test date.
+Written as jobs rather than screens, because roles are configurable permission bundles and
+screens follow from the work a person is authorized to perform.
 
-**Instructor** — *"Who am I teaching today?"*
-Today's and this week's lessons with student name, vehicle and pickup point. Mark
-attendance. Record progress against the syllabus. Flag a student as trial-ready.
+**Student** - *"Am I on track, and what do I owe?"*
+View the next lesson, lessons used, instalment status, licensing-journey progress,
+learning-hub resources, and trial-test date. Request rescheduling if the business confirms
+self-service under the 12-hour rule
+([BR-12](domain-and-rules.md#service-delivery)).
 
-**Branch staff** — *"Keep today running."*
-**The callback queue** — trial bookings submitted from the public site, waiting on the
-two-hour promise ([BR-05](domain-and-rules.md#booking)). This is the single most important
-screen in the whole application, because it is the one that closes
-[FR-208](functional-requirements.md#lead-capture), the gap where a submitted booking
-currently goes nowhere. Then: today's timetable, instructor and vehicle assignment,
-enrolment and document collection ([BR-22](domain-and-rules.md#regulatory)), payment
-collection, rescheduling, trial-test slot booking.
+**Instructor** - *"Who am I teaching today?"*
+View assigned lessons with student, vehicle, and pickup details; mark attendance; record
+syllabus progress; and flag a student as trial-ready. This persona remains an inferred
+requirement until the business confirms that instructors sign in directly.
 
-**School staff** — *"Is the business working?"*
-All branches at once. Course and package pricing — currently hardcoded in
-`src/data/school.ts`, and the thing that decides whether prices must be API-served
-([open question 7](open-questions.md#significant--shape-what-gets-built)). Staff and
-instructor accounts. Branch hours and which classes each teaches — note that
-[BR-01](domain-and-rules.md#booking) depends on that data being editable. Site content in
-all three languages. Pass rates and the figures published as marketing claims
-([published claims](domain-and-rules.md#published-claims)).
+**Branch staff** - *"Keep today running."*
+Handle the selected branch's callback queue, timetable, instructor and vehicle assignment,
+enrolment, document collection, payment collection, rescheduling, and trial-test slots.
+The callback queue closes the current gap between
+[FR-208](functional-requirements.md#lead-capture) and the two-hour promise.
 
-## Model permissions, not roles
+**School staff** - *"Is the business working?"*
+Perform specifically permitted work across branches, such as catalogue administration,
+reporting, staff lifecycle, and branch administration. School scope never bypasses an
+inactive branch or a missing resource permission.
 
-**Check what a user may do, never who they are.**
+## Authorization model
 
-```
-if (user.role === 'branch_staff')   ✗
-if (can('lesson.reschedule'))       ✓
+Application code checks a permission against the target data scope. It does not check a
+persona or display role name.
+
+```text
+can(account, permission, targetScope)  correct
+account.role == "branch_staff"        incorrect
 ```
 
-Roles are bundles of permissions, and bundles change. The moment the business introduces a
-branch *manager* who can do everything branch staff can plus approve refunds, every
-`role === 'branch_staff'` check in the codebase is wrong — and you find them one bug at a
-time. Permission checks survive that; role checks do not. A fourth role appeared above
-just from reading the requirements. Assume a fifth is coming.
+One request is authorized only when the server finds one complete matching grant:
 
-Roles stay useful as the thing an administrator assigns. They just should not be what the
-code branches on.
+1. The account, target branch, role, role assignment, and any required staff branch
+   assignment are active.
+2. One active role assignment contains the required permission at the target scope.
+3. For `BRANCH`, the role, role assignment, staff branch assignment, and stored target
+   record all refer to the same branch.
+4. For `SCHOOL`, the permission comes from a school-scoped role; permissions from another
+   role cannot be combined with that scope.
+5. For `SELF`, the authenticated `STUDENT` account is linked to the target student record
+   and the profile and owner branch allow that operation.
 
-## Permission alone is not enough — scope matters
+The three authorization scopes are:
 
-This is the trap worth designing around now rather than retrofitting.
-
-Branch staff at Wellawatte and branch staff at Battaramulla hold **the same permission**
-and must see **different data**. `student.view` does not mean "view any student", it means
-"view students at my branch". Every permission therefore carries a scope:
-
-| Scope | Meaning | Roles |
-| --- | --- | --- |
-| `self` | Only their own records | Student, instructor |
-| `branch` | Records belonging to one branch | Branch staff, instructor |
-| `all` | Every branch | School staff |
-
-An authorization answer needs all three parts: **who, what, and over which rows.** A
-system that checks only the first two lets a Wellawatte coordinator read Battaramulla's
-student list — a data breach, not a bug.
-
-Two wrinkles specific to this business, both needing answers:
-
-- Rajagiriya is the head office and the only location teaching all four licence classes
-  ([locations](domain-and-rules.md#locations)). Does its staff have `branch` scope or
-  `all`?
-- A student may train at one branch and sit the trial at another. Which branch "owns" them
-  for scoping?
-
-## Draft permission catalogue
-
-A starting point to argue with, not a finished list. Grouped by the resource acted on.
-
-| Group | Permissions |
+| Scope | Meaning |
 | --- | --- |
-| Booking | `booking.view`, `booking.claim`, `booking.convert`, `booking.dismiss` |
-| Student | `student.view`, `student.enrol`, `student.edit`, `student.document.verify` |
-| Lesson | `lesson.view`, `lesson.schedule`, `lesson.reschedule`, `lesson.attend`, `lesson.progress.record` |
-| Payment | `payment.view`, `payment.collect`, `payment.refund` |
-| Trial test | `trial.book`, `trial.result.record` |
-| Instructor | `instructor.view`, `instructor.assign` |
-| Catalogue | `course.view`, `course.edit`, `package.edit`, `price.edit` |
-| Branch | `branch.view`, `branch.edit`, `branch.hours.edit` |
-| Content | `content.faq.edit`, `content.resource.edit`, `content.translate` |
-| Reporting | `report.branch.view`, `report.school.view` |
-| Administration | `user.view`, `user.invite`, `user.role.assign` |
+| `SCHOOL` | All branches for the exact actions granted by a school-scoped role |
+| `BRANCH` | One immutable branch bound to the role and role assignment |
+| `SELF` | Only the student record linked to the authenticated student account |
 
-Note `content.translate` as its own permission. Site copy exists in three languages under
-strict parity ([language parity](non-functional.md#language-parity)); whoever edits an FAQ
-must not be able to publish it in English only.
+The server resolves scope from stored records. A branch ID, role ID, scope value, or
+student ID supplied by the browser is input to validate, never proof of authority.
 
-## The server owns permissions
+## Permission naming
 
-**Non-negotiable, and the one item here that is a security requirement rather than a
-design preference.**
+Permissions are immutable, server-managed seed data with four categories:
 
-The client is *told* what the user may do; it never decides. On session establishment the
-API returns the user's identity, their granted permissions and their scope. The client
-uses that to render — and for nothing else.
+| Prefix | Valid scope | Purpose |
+| --- | --- | --- |
+| `SC_` | `SCHOOL` | School-only actions |
+| `BR_` | `BRANCH` | Branch-only actions |
+| `CO_` | `SCHOOL` or `BRANCH` | The same action usable at either staff scope |
+| `ST_` | `SELF` | Student self-service actions in `student_default` only |
 
-Hiding a menu item is a courtesy, not a control. Every request must be authorized again on
-the server, because a browser is a place where anyone can edit anything. The three
-enforcement layers this implies on the client are described in
-[app shell → enforcing access](../frontend/app-shell.md#enforcing-access).
+For example, `CO_STUDENT_VIEW` in a school-scoped role can view authorized students across
+branches. The same permission in a branch-scoped role applies only to the exact assigned
+branch. A prefix classifies a permission but never grants it implicitly.
 
-## Open questions
+The complete usable and delegable permission sets must live in a reviewed,
+version-controlled seed manifest. Do not revive the earlier dotted draft catalogue or
+infer a permission from its prefix.
 
-1. **Is there an instructor role?** Everything above assumes yes.
-2. **Do students get a portal in the first release**, or is this staff-first? The public
-   site already promises students a portal and a learning hub, so shipping staff-only
-   leaves those promises outstanding — but it is a smaller, faster first release.
-3. **Head office scope** — does Rajagiriya staff see all branches?
-4. **Branch ownership of a student** who trains and tests at different locations.
-5. **Can a student hold more than one enrolment** — a scooter licence now, a car licence
-   next year? This decides whether the student dashboard shows one course or a list.
-6. **How does a student get an account?** The public booking form deliberately requires no
-   account ([BR-04](domain-and-rules.md#booking)), so an account is created somewhere
-   between callback and enrolment. Who creates it, and how does the student receive it?
-7. **Self-service or staff-mediated rescheduling?** The copy promises students can
-   reschedule themselves from a portal ([BR-12](domain-and-rules.md#service-delivery)),
-   which is a materially larger build than staff doing it on request.
+Control-plane permissions for lifecycle, role administration, protected-role assignment,
+transfers, recovery, and equivalent security-sensitive workflows are non-delegable and
+may be held only through the protected seed roles defined by the canonical policy.
+
+## Roles and assignments
+
+Ordinary roles are configurable permission bundles with one immutable `SCHOOL` or
+`BRANCH` scope. A branch role is permanently bound to one branch. Roles have an `ACTIVE`
+or `INACTIVE` lifecycle; deactivation is irreversible and ends their active assignments.
+
+Role assignments are immutable bindings of account, role, scope, and branch where
+applicable. They have `ACTIVE` or `ENDED` state. Changing the user, role, scope, or branch
+means ending the old assignment and creating a new one through an authorized workflow.
+
+Three protected system-role types are seeded and cannot be edited, cloned, renamed,
+deleted, or delegated:
+
+| Protected role | Scope | Purpose |
+| --- | --- | --- |
+| `school_super_admin` | `SCHOOL` | Protected school control plane defined by the seed manifest |
+| `branch_super_admin` | `BRANCH` | One protected instance per branch, bound to that branch |
+| `student_default` | `SELF` | The only role a `STUDENT` account may hold |
+
+Permissions are assigned to roles, not directly to users. Role management, assignment,
+revocation, lifecycle actions, and permission delegation are separate workflows. An
+administrator cannot manage their own memberships, and one authorizing role must contain
+both the required management permission and all required delegation rights.
+
+## Account onboarding and sessions
+
+Staff do not register publicly. A protected school-super-admin workflow sends a
+single-use, time-limited invitation bound to an approved identity and verified contact.
+The invitee establishes credentials and multi-factor authentication. The first
+`school_super_admin` is created only by one-time deployment provisioning.
+
+A student record can exist without an account. Once its branch, profile status, and
+verified contact make it link-eligible, authorized branch staff can send a single-use,
+time-limited portal invitation. Redemption creates or links one `STUDENT` account and
+atomically assigns `student_default`. A student account can link to only one student
+record, and a student record can have only one active account link.
+
+On session establishment, the API should return identity and effective grants separated
+by scope and branch. A single role name or flat permission list is insufficient for staff
+who hold different grants in different branches. Grant boundaries must remain intact where
+policy requires one authorizing role; the client must not union partial grants. The
+frontend may use grants to shape navigation, but every backend request must authorize the
+action and target again.
+
+Access-relevant changes must take effect immediately through server-side authorization
+version checks, role-policy revision checks, or session invalidation. Sensitive
+control-plane actions require recent multi-factor reauthentication.
+
+## Product questions still open
+
+1. **Do instructors sign in?** If yes, define the branch-scoped operational permissions
+   and the row rule that limits them to assigned work.
+2. **Does the student portal ship in the first release?** The public site promises it, but
+   the staff workflow is an earlier dependency.
+3. **Which Rajagiriya staff receive school-scoped roles?** Head-office location alone must
+   not grant `SCHOOL` scope.
+4. **Which branch owns a student who trains and tests at different locations?** Every
+   student has exactly one owner branch, so the business must define this rule.
+5. **Can one student hold multiple enrolments?** This determines whether portal and
+   payment views are singular or collections.
+6. **Is rescheduling student self-service or staff-mediated?** Self-service requires an
+   explicit `ST_` permission and server-side enforcement of the 12-hour rule.

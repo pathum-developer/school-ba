@@ -22,15 +22,18 @@ The first backend slice should close that gap before building larger portal feat
 ## Suggested Build Order
 
 1. Public trial-booking submission.
-2. Branch-staff callback queue.
-3. Booking claim, dismiss, and conversion flow.
-4. Enrolment and student records.
-5. Scheduling, attendance, and instructor assignment.
-6. Payments and instalments.
-7. Student portal and learning hub delivery.
-8. School-staff administration and reporting.
+2. Authentication foundation: immutable account types, credentials, MFA, sessions, and default-deny security wiring.
+3. Versioned permission/protected-role seed manifest and one-time `school_super_admin` bootstrap.
+4. Minimum staff invitation, branch assignment, and role-assignment workflows needed to authorize branch staff.
+5. Branch-scoped callback queue and booking claim, dismiss, and conversion flow.
+6. Enrolment, student lifecycle, and verified-contact workflows.
+7. Scheduling, attendance, instructor assignment, payments, and instalments.
+8. Student portal invitation, account binding, and learning-hub delivery.
+9. Remaining school administration and reporting workflows.
 
-This order follows the data lifecycle: a lead arrives before a student exists, and a student exists before lessons, payments, or portal state are meaningful.
+This order follows both the data lifecycle and the authorization prerequisites. Public lead
+capture can arrive first, but no staff queue may be exposed until the account, assignment,
+permission, scope, and session controls required by the administration policy exist.
 
 ## Backend Project Rules
 

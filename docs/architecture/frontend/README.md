@@ -22,6 +22,10 @@ Driving School, in English, Sinhala and Tamil.
 For *what* the product must do rather than how it is built — scope, functional
 requirements, business rules and open questions — see
 [business requirements](../business-requirements/README.md).
+For authenticated UI behavior, treat
+[administration requirements](../business-requirements/administration-requirements.md) as
+the canonical security policy and [app shell](app-shell.md) as its proposed frontend
+projection.
 
 ## The shape of the app
 
@@ -39,7 +43,7 @@ flowchart TD
 ```
 
 There is exactly one route, one React root and one provider. Everything a visitor sees is
-composed in [`App.tsx`](../../../src/App.tsx), which renders the header, eight sections in
+composed in [`App.tsx`](../../../../school-ui/src/App.tsx), which renders the header, eight sections in
 page order, the footer, the phone-only action bar, and a single toast outlet.
 
 ## Decisions and their reasons
