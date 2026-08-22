@@ -9,7 +9,7 @@ public record LoginRequest(
         String identifier,
 
         @NotBlank(message = "Password is required.")
-        @Size(max = 256, message = "Password is too long.")
+        @Size(max = 128, message = "Password is too long.")
         String password
 ) {
     @Override

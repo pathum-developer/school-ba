@@ -7,9 +7,4 @@ public record MfaRequiredResponse(
         String challengeId,
         Instant expiresAt
 ) implements LoginResponse {
-    @Override
-    public String toString() {
-        return "MfaRequiredResponse[status=" + status + ", challengeId=[REDACTED], expiresAt="
-                + expiresAt + "]";
-    }
 }

@@ -4,7 +4,6 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
-import java.util.Objects;
 import java.util.UUID;
 
 import static com.elvencode.schoolba.auth.repository.JdbcTime.utc;
@@ -26,11 +25,6 @@ public class AuthChallengeRepository {
             Instant createdAt,
             Instant expiresAt
     ) {
-        byte[] hash = Objects.requireNonNull(
-                challengeHash,
-                "challengeHash must not be null"
-        ).clone();
-
         jdbcClient.sql("""
                         UPDATE auth_challenge
                         SET lifecycle_state = 'INVALIDATED', invalidated_at = :invalidatedAt
@@ -54,7 +48,7 @@ public class AuthChallengeRepository {
                 .param("id", challengeId)
                 .param("accountId", accountId)
                 .param("factorId", factorId)
-                .param("challengeHash", hash)
+                .param("challengeHash", challengeHash)
                 .param("expiresAt", utc(expiresAt))
                 .param("createdAt", utc(createdAt))
                 .update();

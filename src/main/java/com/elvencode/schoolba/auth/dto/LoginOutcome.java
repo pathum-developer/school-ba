@@ -1,6 +1,9 @@
 package com.elvencode.schoolba.auth.dto;
 
-public record LoginOutcome(LoginResponse response, String refreshToken) {
+public record LoginOutcome(
+        LoginResponse response,
+        String refreshToken
+) {
 
     public boolean hasRefreshToken() {
         return refreshToken != null;

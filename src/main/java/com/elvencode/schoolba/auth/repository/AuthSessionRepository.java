@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -64,21 +63,21 @@ public class AuthSessionRepository {
 
     public Optional<SessionState> findSessionState(UUID sessionId) {
         return jdbcClient.sql("""
-                        SELECT auth_session.id AS session_id,
-                               auth_session.account_id,
+                        SELECT session.id AS session_id,
+                               session.account_id,
                                account.account_type,
                                account.lifecycle_state AS account_lifecycle_state,
                                account.authorization_version AS account_authorization_version,
                                account.credential_version AS account_credential_version,
-                               auth_session.lifecycle_state AS session_lifecycle_state,
-                               auth_session.authorization_version AS session_authorization_version,
-                               auth_session.credential_version AS session_credential_version,
-                               auth_session.mfa_authenticated_at,
-                               auth_session.idle_expires_at,
-                               auth_session.absolute_expires_at
-                        FROM auth_session
-                        JOIN user_account account ON account.id = auth_session.account_id
-                        WHERE auth_session.id = :sessionId
+                               session.lifecycle_state AS session_lifecycle_state,
+                               session.authorization_version AS session_authorization_version,
+                               session.credential_version AS session_credential_version,
+                               session.mfa_authenticated_at,
+                               session.idle_expires_at,
+                               session.absolute_expires_at
+                        FROM auth_session session
+                        JOIN user_account account ON account.id = session.account_id
+                        WHERE session.id = :sessionId
                         """)
                 .param("sessionId", sessionId)
                 .query(this::mapSessionState)
@@ -102,7 +101,7 @@ public class AuthSessionRepository {
         );
     }
 
-    private Instant toInstant(OffsetDateTime value) {
+    private java.time.Instant toInstant(OffsetDateTime value) {
         return value == null ? null : value.toInstant();
     }
 }

@@ -5,9 +5,4 @@ public record AccessTokenResponse(
         String tokenType,
         long expiresIn
 ) implements LoginResponse {
-    @Override
-    public String toString() {
-        return "AccessTokenResponse[accessToken=[REDACTED], tokenType=" + tokenType
-                + ", expiresIn=" + expiresIn + "]";
-    }
 }

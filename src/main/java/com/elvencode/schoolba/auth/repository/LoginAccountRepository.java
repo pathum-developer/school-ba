@@ -64,15 +64,12 @@ public class LoginAccountRepository {
     }
 
     private LoginAccount mapLoginAccount(ResultSet resultSet, int rowNumber) throws SQLException {
-        OffsetDateTime identityVerifiedAt = resultSet.getObject(
-                "identity_verified_at",
-                OffsetDateTime.class
-        );
+        OffsetDateTime verifiedAt = resultSet.getObject("identity_verified_at", OffsetDateTime.class);
         return new LoginAccount(
                 resultSet.getObject("account_id", UUID.class),
                 AccountType.valueOf(resultSet.getString("account_type")),
                 resultSet.getString("lifecycle_state"),
-                identityVerifiedAt == null ? null : identityVerifiedAt.toInstant(),
+                verifiedAt == null ? null : verifiedAt.toInstant(),
                 resultSet.getLong("authorization_version"),
                 resultSet.getLong("credential_version"),
                 resultSet.getString("secret_hash"),

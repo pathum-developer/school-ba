@@ -6,7 +6,6 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Types;
 import java.time.Instant;
-import java.util.Objects;
 import java.util.UUID;
 
 import static com.elvencode.schoolba.auth.repository.JdbcTime.utc;
@@ -25,15 +24,6 @@ public class AuthenticationEventRepository {
             byte[] sourceFingerprintHash,
             Instant since
     ) {
-        byte[] safeIdentifierHash = Objects.requireNonNull(
-                identifierHash,
-                "identifierHash must not be null"
-        ).clone();
-        byte[] safeSourceFingerprintHash = Objects.requireNonNull(
-                sourceFingerprintHash,
-                "sourceFingerprintHash must not be null"
-        ).clone();
-
         Long count = jdbcClient.sql("""
                         SELECT COUNT(*)
                         FROM authentication_event
@@ -42,8 +32,8 @@ public class AuthenticationEventRepository {
                           AND event_type = 'LOGIN_FAILED'
                           AND occurred_at >= :since
                         """)
-                .param("identifierHash", safeIdentifierHash)
-                .param("sourceFingerprintHash", safeSourceFingerprintHash)
+                .param("identifierHash", identifierHash)
+                .param("sourceFingerprintHash", sourceFingerprintHash)
                 .param("since", utc(since))
                 .query(Long.class)
                 .single();
@@ -58,11 +48,6 @@ public class AuthenticationEventRepository {
             byte[] sourceFingerprintHash,
             Instant occurredAt
     ) {
-        byte[] safeIdentifierHash = identifierHash == null ? null : identifierHash.clone();
-        byte[] safeSourceFingerprintHash = sourceFingerprintHash == null
-                ? null
-                : sourceFingerprintHash.clone();
-
         jdbcClient.sql("""
                         INSERT INTO authentication_event (
                             id, account_id, session_id, event_type, identifier_hash,
@@ -76,8 +61,8 @@ public class AuthenticationEventRepository {
                 .param("accountId", accountId, Types.OTHER)
                 .param("sessionId", sessionId, Types.OTHER)
                 .param("eventType", eventType.name())
-                .param("identifierHash", safeIdentifierHash)
-                .param("sourceFingerprintHash", safeSourceFingerprintHash)
+                .param("identifierHash", identifierHash)
+                .param("sourceFingerprintHash", sourceFingerprintHash)
                 .param("occurredAt", utc(occurredAt))
                 .update();
     }
