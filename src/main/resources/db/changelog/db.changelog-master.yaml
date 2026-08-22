@@ -5,3 +5,6 @@ databaseChangeLog:
   - include:
       file: changes/002-create-auth-refresh-token-history.sql
       relativeToChangelogFile: true
+  - include:
+      file: changes/003-create-auth-login-indexes.sql
+      relativeToChangelogFile: true
