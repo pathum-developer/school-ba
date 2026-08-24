@@ -1,0 +1,807 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-enable-pgcrypto
+      author: codex
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+  - changeSet:
+      id: 002-create-school
+      author: codex
+      changes:
+        - createTable:
+            tableName: school
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_school
+                    nullable: false
+              - column:
+                  name: code
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_school_code
+              - column:
+                  name: name
+                  type: varchar(160)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: short_name
+                  type: varchar(80)
+              - column:
+                  name: established_year
+                  type: smallint
+              - column:
+                  name: singleton_key
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_school_singleton
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE school ADD CONSTRAINT ck_school_singleton_key_true CHECK (singleton_key = true);
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE school ADD CONSTRAINT ck_school_established_year CHECK (established_year IS NULL OR established_year BETWEEN 1800 AND 9999);
+
+  - changeSet:
+      id: 003-create-branch
+      author: codex
+      changes:
+        - createTable:
+            tableName: branch
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_branch
+                    nullable: false
+              - column:
+                  name: school_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: code
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(160)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: branch_type
+                  type: varchar(32)
+                  defaultValue: BRANCH
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_head_office
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            constraintName: fk_branch_school
+            baseTableName: branch
+            baseColumnNames: school_id
+            referencedTableName: school
+            referencedColumnNames: id
+            onDelete: RESTRICT
+        - addUniqueConstraint:
+            tableName: branch
+            columnNames: school_id, code
+            constraintName: uk_branch_school_code
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE branch ADD CONSTRAINT ck_branch_type CHECK (branch_type IN ('BRANCH', 'YARD'));
+        - sql:
+            dbms: postgresql
+            sql: CREATE UNIQUE INDEX ux_branch_one_head_office_per_school ON branch (school_id) WHERE is_head_office;
+
+  - changeSet:
+      id: 004-create-license-class
+      author: codex
+      changes:
+        - createTable:
+            tableName: license_class
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_license_class
+                    nullable: false
+              - column:
+                  name: code
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_license_class_code
+              - column:
+                  name: name
+                  type: varchar(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_order
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: license_class
+            columnNames: display_order
+            constraintName: uk_license_class_display_order
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE license_class ADD CONSTRAINT ck_license_class_display_order_positive CHECK (display_order > 0);
+
+  - changeSet:
+      id: 005-create-contact-number-tables
+      author: codex
+      changes:
+        - createTable:
+            tableName: school_contact_number
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_school_contact_number
+                    nullable: false
+              - column:
+                  name: school_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: contact_type
+                  type: varchar(32)
+                  defaultValue: GENERAL
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phone_number
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phone_number_e164
+                  type: varchar(16)
+              - column:
+                  name: is_primary
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_order
+                  type: integer
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: branch_contact_number
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_branch_contact_number
+                    nullable: false
+              - column:
+                  name: branch_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: contact_type
+                  type: varchar(32)
+                  defaultValue: GENERAL
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phone_number
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phone_number_e164
+                  type: varchar(16)
+              - column:
+                  name: is_primary
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_order
+                  type: integer
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            constraintName: fk_school_contact_number_school
+            baseTableName: school_contact_number
+            baseColumnNames: school_id
+            referencedTableName: school
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            constraintName: fk_branch_contact_number_branch
+            baseTableName: branch_contact_number
+            baseColumnNames: branch_id
+            referencedTableName: branch
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addUniqueConstraint:
+            tableName: school_contact_number
+            columnNames: school_id, phone_number
+            constraintName: uk_school_contact_number_school_phone
+        - addUniqueConstraint:
+            tableName: school_contact_number
+            columnNames: school_id, display_order
+            constraintName: uk_school_contact_number_school_display_order
+        - addUniqueConstraint:
+            tableName: branch_contact_number
+            columnNames: branch_id, phone_number
+            constraintName: uk_branch_contact_number_branch_phone
+        - addUniqueConstraint:
+            tableName: branch_contact_number
+            columnNames: branch_id, display_order
+            constraintName: uk_branch_contact_number_branch_display_order
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE school_contact_number ADD CONSTRAINT ck_school_contact_number_type CHECK (contact_type IN ('GENERAL', 'HOTLINE', 'WHATSAPP'));
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE branch_contact_number ADD CONSTRAINT ck_branch_contact_number_type CHECK (contact_type IN ('GENERAL', 'HOTLINE', 'WHATSAPP'));
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE school_contact_number ADD CONSTRAINT ck_school_contact_number_display_order_positive CHECK (display_order > 0);
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE branch_contact_number ADD CONSTRAINT ck_branch_contact_number_display_order_positive CHECK (display_order > 0);
+        - sql:
+            dbms: postgresql
+            sql: CREATE UNIQUE INDEX ux_school_contact_number_primary_per_school ON school_contact_number (school_id) WHERE is_primary;
+        - sql:
+            dbms: postgresql
+            sql: CREATE UNIQUE INDEX ux_branch_contact_number_primary_per_branch ON branch_contact_number (branch_id) WHERE is_primary;
+
+  - changeSet:
+      id: 006-create-branch-license-class
+      author: codex
+      changes:
+        - createTable:
+            tableName: branch_license_class
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_branch_license_class
+                    nullable: false
+              - column:
+                  name: branch_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: license_class_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            constraintName: fk_branch_license_class_branch
+            baseTableName: branch_license_class
+            baseColumnNames: branch_id
+            referencedTableName: branch
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            constraintName: fk_branch_license_class_license_class
+            baseTableName: branch_license_class
+            baseColumnNames: license_class_id
+            referencedTableName: license_class
+            referencedColumnNames: id
+            onDelete: RESTRICT
+        - addUniqueConstraint:
+            tableName: branch_license_class
+            columnNames: branch_id, license_class_id
+            constraintName: uk_branch_license_class_branch_license_class
+
+  - changeSet:
+      id: 007-seed-dmt-license-classes
+      author: codex
+      context: reference
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE license_class ADD COLUMN included_class_codes jsonb NOT NULL DEFAULT '[]'::jsonb;
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE license_class ADD COLUMN old_class_codes jsonb NOT NULL DEFAULT '[]'::jsonb;
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE license_class ADD COLUMN source_url varchar(512);
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              INSERT INTO license_class (
+                  code,
+                  name,
+                  display_order,
+                  included_class_codes,
+                  old_class_codes,
+                  source_url
+              )
+              VALUES
+                  ('A1', 'Light motor cycle', 1, '["G1"]'::jsonb, '["D"]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en'),
+                  ('A', 'Motorcycle', 2, '["A1", "G1"]'::jsonb, '["D"]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en'),
+                  ('B1', 'Motor tricycle or light van', 3, '["G1"]'::jsonb, '["E", "F"]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en'),
+                  ('B', 'Dual purpose motor vehicle', 4, '["G1"]'::jsonb, '["C", "C1"]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en'),
+                  ('C1', 'Light motor lorry', 5, '["B", "G1"]'::jsonb, '["B1"]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en'),
+                  ('C', 'Motor lorry', 6, '["C1", "B", "J", "G", "G1"]'::jsonb, '["B"]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en'),
+                  ('CE', 'Heavy motor lorry with trailer', 7, '["C", "C1", "B", "B1", "G", "G1", "J"]'::jsonb, '["B"]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en'),
+                  ('D1', 'Light motor coach', 8, '["C1", "B", "B1", "G", "G1"]'::jsonb, '["A1"]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en'),
+                  ('D', 'Motor coach', 9, '["D1", "C", "C1", "B", "B1", "G", "G1", "J"]'::jsonb, '["A"]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en'),
+                  ('DE', 'Heavy motor coach with trailer', 10, '["D", "D1", "C", "C1", "CE", "B", "B1", "G", "G1", "J"]'::jsonb, '[]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en'),
+                  ('G1', 'Hand tractor', 11, '[]'::jsonb, '["G1"]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en'),
+                  ('G', 'Agricultural land vehicle', 12, '["G1"]'::jsonb, '["G"]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en'),
+                  ('J', 'Special purpose vehicle', 13, '["G1"]'::jsonb, '[]'::jsonb, 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en')
+              ON CONFLICT (code) DO UPDATE
+              SET name = EXCLUDED.name,
+                  display_order = EXCLUDED.display_order,
+                  included_class_codes = EXCLUDED.included_class_codes,
+                  old_class_codes = EXCLUDED.old_class_codes,
+                  source_url = EXCLUDED.source_url,
+                  updated_at = now();
+
+  - changeSet:
+      id: 008-add-license-class-description
+      author: codex
+      changes:
+        - addColumn:
+            tableName: license_class
+            columns:
+              - column:
+                  name: description
+                  type: text
+
+  - changeSet:
+      id: 009-update-dmt-license-class-descriptions
+      author: codex
+      context: reference
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              UPDATE license_class
+              SET description = CASE code
+                  WHEN 'A1' THEN 'Light motor cycles of which Engine Capacity does not exceeds 100CC'
+                  WHEN 'A' THEN 'Motorcycles of which Engine capacity exceeds 100CC'
+                  WHEN 'B1' THEN 'Motor Tricycle or van of which tare does not exceed 500kg and Gross vehicle weight does not exceed 1000 kg: Motor vehicle in this class include an invalid carriage'
+                  WHEN 'B' THEN 'Dual purpose Motor vehicle of which Gross Vehicle Weight does not exceed 3500kg and the seating capacity does not exceed 9 seats inclusive of the driver’s seat, which may be combined with a trailer of which maximum authorized tare does not exceed 750kg: Motor vehicle in this class include and invalid carriage and all cars where the seating capacity does not exceed 9 seats inclusive of the Driver’s seat.'
+                  WHEN 'C1' THEN 'Light Motor Lorry – Motor Lorry of which Gross Vehicle Weight exceeds 3500 kg and does not exceed 17000kg: Motor vehicles in this class may be combined with a trailer having maximum authorized tare which does not exceed 750kg: Motor vehicles of this class include a motor ambulance and motor hearses.'
+                  WHEN 'C' THEN 'Motor Lorry of which Gross vehicle Weight is more than 1700kg; may be combine with a trailer having a maximum authorized tare which does not exceed 750kg'
+                  WHEN 'CE' THEN 'Heavy Motor Lorry; combination of motor lorry and trailer (s) including articulated vehicles and its trailer (s) of which maximum authorized tare of the trailer exceeds 750kg and gross vehicle weight exceeds 3500kg'
+                  WHEN 'D1' THEN 'Light Motor Coach- Motor vehicles used for the carriage of persons and having seating capacity of not less than 9 seats and not more than 33 seats inclusive of the driver’s seat; motor vehicle in this class may be combined with a trailer having a maximum authorized tare which does not exceed 750kg'
+                  WHEN 'D' THEN 'Motor Coach where the seating capacity does not exceed 33 seats inclusive of the driver’s seat; motor vehicles in this class may be combined with a trailer having a maximum authorized tare which does not exceed 750kg'
+                  WHEN 'DE' THEN 'Heavy Motor Coach – Combination of motor coach having a seating capacity of 33 seats inclusive of the driver’s seat and it’s trailer having maximum authorized tare exceeding 750kg or a combination of two motor coaches'
+                  WHEN 'G1' THEN 'Hand Tractors - Two Wheel Tractor with a Trailer'
+                  WHEN 'G' THEN 'Land Vehicle - Agricultural Land Vehicle with or without a trailer'
+                  WHEN 'J' THEN 'Special purpose Vehicle, Vehicle used for construction, loading & unloading excluding motor lorries, light motor lorries and heavy motor lorries, equipped with construction equipment and equipment for loading and unloading goods'
+                  ELSE description
+              END,
+                  updated_at = now()
+              WHERE code IN ('A1', 'A', 'B1', 'B', 'C1', 'C', 'CE', 'D1', 'D', 'DE', 'G1', 'G', 'J');
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE license_class ALTER COLUMN description SET NOT NULL;
+
+  - changeSet:
+      id: 010-add-school-contact-profile-fields
+      author: codex
+      changes:
+        - addColumn:
+            tableName: school
+            columns:
+              - column:
+                  name: hotline_href
+                  type: varchar(64)
+              - column:
+                  name: whatsapp_href
+                  type: varchar(128)
+              - column:
+                  name: email
+                  type: varchar(254)
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE school ADD CONSTRAINT ck_school_email_format CHECK (email IS NULL OR email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$');
+
+  - changeSet:
+      id: 011-seed-school-profile
+      author: codex
+      context: reference
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              INSERT INTO school (
+                  id,
+                  code,
+                  name,
+                  short_name,
+                  established_year,
+                  hotline_href,
+                  whatsapp_href,
+                  email
+              )
+              VALUES (
+                  '20000000-0000-0000-0000-000000000001',
+                  'elven',
+                  'Elven Driving School',
+                  'Elven',
+                  1950,
+                  'tel:+94771234567',
+                  'https://wa.me/94771234567',
+                  'hello@elvendriving.lk'
+              )
+              ON CONFLICT (code) DO UPDATE
+              SET name = EXCLUDED.name,
+                  short_name = EXCLUDED.short_name,
+                  established_year = EXCLUDED.established_year,
+                  hotline_href = EXCLUDED.hotline_href,
+                  whatsapp_href = EXCLUDED.whatsapp_href,
+                  email = EXCLUDED.email,
+                  updated_at = now();
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              INSERT INTO school_contact_number (
+                  id,
+                  school_id,
+                  contact_type,
+                  phone_number,
+                  phone_number_e164,
+                  is_primary,
+                  display_order
+              )
+              SELECT
+                  '20000000-0000-0000-0000-000000000002',
+                  id,
+                  'HOTLINE',
+                  '077 123 4567',
+                  '+94771234567',
+                  true,
+                  1
+              FROM school
+              WHERE code = 'elven'
+              ON CONFLICT (school_id, phone_number) DO UPDATE
+              SET contact_type = EXCLUDED.contact_type,
+                  phone_number_e164 = EXCLUDED.phone_number_e164,
+                  is_primary = EXCLUDED.is_primary,
+                  display_order = EXCLUDED.display_order,
+                  updated_at = now();
+
+  - changeSet:
+      id: 012-add-branch-address
+      author: codex
+      changes:
+        - addColumn:
+            tableName: branch
+            columns:
+              - column:
+                  name: address
+                  type: varchar(255)
+
+  - changeSet:
+      id: 013-seed-branches-and-license-offerings
+      author: codex
+      context: reference
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              INSERT INTO branch (
+                  id,
+                  school_id,
+                  code,
+                  name,
+                  branch_type,
+                  is_head_office,
+                  address
+              )
+              SELECT
+                  branch_seed.id,
+                  s.id,
+                  branch_seed.code,
+                  branch_seed.name,
+                  branch_seed.branch_type,
+                  branch_seed.is_head_office,
+                  branch_seed.address
+              FROM (
+                  VALUES
+                      ('30000000-0000-0000-0000-000000000001'::uuid, 'rajagiriya', 'Rajagiriya', 'BRANCH', true, 'Cotta Road, Rajagiriya, Sri Lanka'),
+                      ('30000000-0000-0000-0000-000000000002'::uuid, 'wellawatte', 'Wellawatte', 'BRANCH', false, 'Galle Road, Colombo 06, Sri Lanka'),
+                      ('30000000-0000-0000-0000-000000000003'::uuid, 'battaramulla', 'Battaramulla', 'BRANCH', false, 'Pannipitiya Road, Battaramulla, Sri Lanka'),
+                      ('30000000-0000-0000-0000-000000000004'::uuid, 'kaduwela-yard', 'Kaduwela Training Yard', 'YARD', false, 'Avissawella Road, Kaduwela, Sri Lanka')
+              ) AS branch_seed(id, code, name, branch_type, is_head_office, address)
+              CROSS JOIN school s
+              WHERE s.code = 'elven'
+              ON CONFLICT (school_id, code) DO UPDATE
+              SET name = EXCLUDED.name,
+                  branch_type = EXCLUDED.branch_type,
+                  is_head_office = EXCLUDED.is_head_office,
+                  address = EXCLUDED.address,
+                  is_active = true,
+                  updated_at = now();
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              INSERT INTO branch_contact_number (
+                  id,
+                  branch_id,
+                  contact_type,
+                  phone_number,
+                  phone_number_e164,
+                  is_primary,
+                  display_order
+              )
+              SELECT
+                  contact_seed.id,
+                  contact_seed.branch_id,
+                  contact_seed.contact_type,
+                  contact_seed.phone_number,
+                  contact_seed.phone_number_e164,
+                  contact_seed.is_primary,
+                  contact_seed.display_order
+              FROM (
+                  SELECT '30000000-0000-0000-0000-000000000011'::uuid, b.id, 'GENERAL', '077 480 1120', '+94774801120', true, 1 FROM branch b WHERE b.code = 'rajagiriya'
+                  UNION ALL
+                  SELECT '30000000-0000-0000-0000-000000000012'::uuid, b.id, 'GENERAL', '077 480 1121', '+94774801121', true, 1 FROM branch b WHERE b.code = 'wellawatte'
+                  UNION ALL
+                  SELECT '30000000-0000-0000-0000-000000000013'::uuid, b.id, 'GENERAL', '077 480 1122', '+94774801122', true, 1 FROM branch b WHERE b.code = 'battaramulla'
+                  UNION ALL
+                  SELECT '30000000-0000-0000-0000-000000000014'::uuid, b.id, 'GENERAL', '077 480 1123', '+94774801123', true, 1 FROM branch b WHERE b.code = 'kaduwela-yard'
+              ) AS contact_seed(id, branch_id, contact_type, phone_number, phone_number_e164, is_primary, display_order)
+              ON CONFLICT (branch_id, phone_number) DO UPDATE
+              SET contact_type = EXCLUDED.contact_type,
+                  phone_number_e164 = EXCLUDED.phone_number_e164,
+                  is_primary = EXCLUDED.is_primary,
+                  display_order = EXCLUDED.display_order,
+                  updated_at = now();
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              INSERT INTO branch_license_class (branch_id, license_class_id)
+              SELECT b.id, lc.id
+              FROM (
+                  VALUES
+                      ('rajagiriya', 'A1'), ('rajagiriya', 'A'), ('rajagiriya', 'B1'), ('rajagiriya', 'B'),
+                      ('rajagiriya', 'C1'), ('rajagiriya', 'C'), ('rajagiriya', 'CE'), ('rajagiriya', 'D1'),
+                      ('wellawatte', 'A1'), ('wellawatte', 'A'), ('wellawatte', 'B1'), ('wellawatte', 'B'),
+                      ('wellawatte', 'G1'), ('wellawatte', 'J'),
+                      ('battaramulla', 'B'), ('battaramulla', 'C'), ('battaramulla', 'CE'),
+                      ('kaduwela-yard', 'A'), ('kaduwela-yard', 'G1'), ('kaduwela-yard', 'G')
+              ) AS offering(branch_code, license_class_code)
+              JOIN branch b ON b.code = offering.branch_code
+              JOIN license_class lc ON lc.code = offering.license_class_code
+              ON CONFLICT (branch_id, license_class_id) DO NOTHING;
+
+  - changeSet:
+      id: 014-add-price-to-branch-license-class
+      author: codex
+      changes:
+        - addColumn:
+            tableName: branch_license_class
+            columns:
+              - column:
+                  name: price_lkr
+                  type: integer
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              UPDATE branch_license_class blc
+              SET price_lkr = priced.price_lkr
+              FROM (
+                  VALUES
+                      ('rajagiriya', 'A1', 18000),
+                      ('rajagiriya', 'A', 26000),
+                      ('rajagiriya', 'B1', 30000),
+                      ('rajagiriya', 'B', 48000),
+                      ('rajagiriya', 'C1', 72000),
+                      ('rajagiriya', 'C', 96000),
+                      ('rajagiriya', 'CE', 108000),
+                      ('rajagiriya', 'D1', 90000),
+                      ('wellawatte', 'A1', 17500),
+                      ('wellawatte', 'A', 25500),
+                      ('wellawatte', 'B1', 29000),
+                      ('wellawatte', 'B', 46000),
+                      ('wellawatte', 'G1', 22000),
+                      ('wellawatte', 'J', 65000),
+                      ('battaramulla', 'B', 47000),
+                      ('battaramulla', 'C', 94000),
+                      ('battaramulla', 'CE', 106000),
+                      ('kaduwela-yard', 'A', 24000),
+                      ('kaduwela-yard', 'G1', 20000),
+                      ('kaduwela-yard', 'G', 36000)
+              ) AS priced(branch_code, license_class_code, price_lkr)
+              JOIN branch b ON b.code = priced.branch_code
+              JOIN license_class lc ON lc.code = priced.license_class_code
+              WHERE blc.branch_id = b.id
+                AND blc.license_class_id = lc.id;
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE branch_license_class ALTER COLUMN price_lkr SET NOT NULL;
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE branch_license_class ADD CONSTRAINT ck_branch_license_class_price_lkr_positive CHECK (price_lkr > 0);
+
+  - changeSet:
+      id: 015-harden-school-schema-constraints
+      author: codex
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              ALTER TABLE branch_license_class DROP CONSTRAINT ck_branch_license_class_price_lkr_positive;
+              ALTER TABLE branch_license_class ALTER COLUMN price_lkr TYPE numeric(12,2) USING price_lkr::numeric(12,2);
+
+              ALTER TABLE school ALTER COLUMN short_name SET NOT NULL;
+              ALTER TABLE school ALTER COLUMN established_year SET NOT NULL;
+              ALTER TABLE school ALTER COLUMN hotline_href SET NOT NULL;
+              ALTER TABLE school ALTER COLUMN whatsapp_href SET NOT NULL;
+              ALTER TABLE school ALTER COLUMN email SET NOT NULL;
+
+              ALTER TABLE branch ALTER COLUMN address SET NOT NULL;
+
+              ALTER TABLE license_class ALTER COLUMN source_url SET NOT NULL;
+
+              ALTER TABLE school_contact_number ALTER COLUMN phone_number_e164 SET NOT NULL;
+              ALTER TABLE branch_contact_number ALTER COLUMN phone_number_e164 SET NOT NULL;
+
+              ALTER TABLE school ADD CONSTRAINT ck_school_code_format CHECK (code ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$');
+              ALTER TABLE school ADD CONSTRAINT ck_school_name_not_blank CHECK (btrim(name) <> '');
+              ALTER TABLE school ADD CONSTRAINT ck_school_short_name_not_blank CHECK (btrim(short_name) <> '');
+              ALTER TABLE school ADD CONSTRAINT ck_school_hotline_href_format CHECK (hotline_href ~ '^tel:\+[1-9][0-9]{7,14}$');
+              ALTER TABLE school ADD CONSTRAINT ck_school_whatsapp_href_format CHECK (whatsapp_href ~ '^https://wa\.me/[1-9][0-9]{7,14}$');
+              ALTER TABLE school ADD CONSTRAINT ck_school_timestamps CHECK (updated_at >= created_at);
+
+              ALTER TABLE branch ADD CONSTRAINT ck_branch_code_format CHECK (code ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$');
+              ALTER TABLE branch ADD CONSTRAINT ck_branch_name_not_blank CHECK (btrim(name) <> '');
+              ALTER TABLE branch ADD CONSTRAINT ck_branch_address_not_blank CHECK (btrim(address) <> '');
+              ALTER TABLE branch ADD CONSTRAINT ck_branch_timestamps CHECK (updated_at >= created_at);
+
+              ALTER TABLE license_class ADD CONSTRAINT ck_license_class_code_format CHECK (code ~ '^[A-Z][A-Z0-9]*$');
+              ALTER TABLE license_class ADD CONSTRAINT ck_license_class_name_not_blank CHECK (btrim(name) <> '');
+              ALTER TABLE license_class ADD CONSTRAINT ck_license_class_description_not_blank CHECK (btrim(description) <> '');
+              ALTER TABLE license_class ADD CONSTRAINT ck_license_class_source_url_format CHECK (source_url ~ '^https?://.+');
+              ALTER TABLE license_class ADD CONSTRAINT ck_license_class_included_codes_array CHECK (jsonb_typeof(included_class_codes) = 'array');
+              ALTER TABLE license_class ADD CONSTRAINT ck_license_class_old_codes_array CHECK (jsonb_typeof(old_class_codes) = 'array');
+              ALTER TABLE license_class ADD CONSTRAINT ck_license_class_timestamps CHECK (updated_at >= created_at);
+
+              ALTER TABLE school_contact_number ADD CONSTRAINT ck_school_contact_number_phone_not_blank CHECK (btrim(phone_number) <> '');
+              ALTER TABLE school_contact_number ADD CONSTRAINT ck_school_contact_number_phone_format CHECK (phone_number ~ '^[0-9 +()-]+$');
+              ALTER TABLE school_contact_number ADD CONSTRAINT ck_school_contact_number_e164_format CHECK (phone_number_e164 ~ '^\+[1-9][0-9]{7,14}$');
+              ALTER TABLE school_contact_number ADD CONSTRAINT ck_school_contact_number_timestamps CHECK (updated_at >= created_at);
+
+              ALTER TABLE branch_contact_number ADD CONSTRAINT ck_branch_contact_number_phone_not_blank CHECK (btrim(phone_number) <> '');
+              ALTER TABLE branch_contact_number ADD CONSTRAINT ck_branch_contact_number_phone_format CHECK (phone_number ~ '^[0-9 +()-]+$');
+              ALTER TABLE branch_contact_number ADD CONSTRAINT ck_branch_contact_number_e164_format CHECK (phone_number_e164 ~ '^\+[1-9][0-9]{7,14}$');
+              ALTER TABLE branch_contact_number ADD CONSTRAINT ck_branch_contact_number_timestamps CHECK (updated_at >= created_at);
+
+              ALTER TABLE branch_license_class ADD CONSTRAINT ck_branch_license_class_price_lkr_positive CHECK (price_lkr > 0);
