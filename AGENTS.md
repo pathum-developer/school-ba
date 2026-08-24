@@ -58,6 +58,7 @@ config/
 - Use singular package names, for example `student`, not `students`.
 - Use lowercase package names.
 - Keep controller, service, repository, entity, dto, mapper, and enums separated.
+- If the user explicitly asks to keep commented code, preserve those comments unless they are invalid syntax or break compilation.
 
 ## Instruction Layering
 
