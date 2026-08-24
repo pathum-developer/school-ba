@@ -2,10 +2,7 @@ package com.elvencode.schoolba.school.branch.controller;
 
 import com.elvencode.schoolba.school.branch.dto.BranchDetailsResponse;
 import com.elvencode.schoolba.school.branch.service.BranchService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -19,6 +16,7 @@ public class BranchController {
         this.branchService = branchService;
     }
 
+    //     ToDo
     @GetMapping(value = {
             "/code/{branchCode}",
             "/code/{branchCode}/name/{branchName}"
@@ -33,8 +31,15 @@ public class BranchController {
         throw new RuntimeException("Branch details lookup is not implemented yet."+Code+" "+branchName);
     }
 
+    //     ToDo
     @GetMapping(value = "/code/{branchCode}/address/{address}", version = "1.0+")
     public BranchDetailsResponse getBranchDetailsByCodeAndAddress(@PathVariable Map<String,String> filterMap) {
         throw new RuntimeException("getBranchDetailsByCodeAndAddress is not implemented yet."+filterMap.get("branchCode") +"->"+ filterMap.get("address"));
+    }
+
+    //     ToDo
+    @GetMapping(value = "/search", version = "1.0+")
+    public BranchDetailsResponse getBranchDetailsByCod(@RequestParam (required = false, defaultValue = "001", name = "branchCode") String Code) {
+        throw new RuntimeException("getBranchDetailsByCod is not implemented yet."+Code);
     }
 }
