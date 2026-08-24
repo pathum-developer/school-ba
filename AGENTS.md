@@ -59,6 +59,7 @@ config/
 - Use lowercase package names.
 - Keep controller, service, repository, entity, dto, mapper, and enums separated.
 - If the user explicitly asks to keep commented code, preserve those comments unless they are invalid syntax or break compilation.
+- If the user explicitly asks to commit changes as-is, do not normalize, clean up, or refactor the file contents first; commit the current working-tree state for the requested files.
 
 ## Instruction Layering
 
