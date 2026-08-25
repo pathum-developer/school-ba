@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 public class SchoolProfileService {
 
     public SchoolProfileResponse getProfile() {
+        System.out.println("calling from front end");
         return new SchoolProfileResponse(
                 "Elven Driving School",
                 "Elven",

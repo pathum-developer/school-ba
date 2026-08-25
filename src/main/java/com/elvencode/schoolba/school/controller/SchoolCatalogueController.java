@@ -2,6 +2,7 @@ package com.elvencode.schoolba.school.controller;
 
 import com.elvencode.schoolba.school.dto.SchoolCatalogueResponse;
 import com.elvencode.schoolba.school.service.SchoolCatalogueService;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
