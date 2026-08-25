@@ -2,6 +2,7 @@ package com.elvencode.schoolba.school.branch.controller;
 
 import com.elvencode.schoolba.school.branch.dto.BranchDetailsResponse;
 import com.elvencode.schoolba.school.branch.service.BranchService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -39,7 +40,19 @@ public class BranchController {
 
     //     ToDo
     @GetMapping(value = "/search", version = "1.0+")
-    public BranchDetailsResponse getBranchDetailsByCod(@RequestParam (required = false, defaultValue = "001", name = "branchCode") String Code) {
+    public BranchDetailsResponse getBranchDetailsByCode(@RequestParam (required = false, defaultValue = "001", name = "branchCode") String Code) {
         throw new RuntimeException("getBranchDetailsByCod is not implemented yet."+Code);
+    }
+
+    //     ToDo
+    @GetMapping(value = "/headers", version = "1.0+")
+    public BranchDetailsResponse readRequestHeaders(@RequestHeader("User-Agent") String userAgent,@RequestHeader(name = "User-location", required = false) String userLocation) {
+        throw new RuntimeException("readRequestHeaders is not implemented yet."+userAgent +" -> "+userLocation);
+    }
+
+    //     ToDo
+    @GetMapping(value = "/user-headers", version = "1.0+")
+    public BranchDetailsResponse readRequestHeadersByHttpHeaders(@RequestHeader HttpHeaders requestHeaders) {
+        throw new RuntimeException("readRequestHeaders is not implemented yet."+requestHeaders.get("User-Agent") );
     }
 }
