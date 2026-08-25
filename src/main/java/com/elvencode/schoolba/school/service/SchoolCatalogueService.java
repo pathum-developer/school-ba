@@ -1,6 +1,7 @@
 package com.elvencode.schoolba.school.service;
 
 import com.elvencode.schoolba.school.dto.SchoolCatalogueResponse;
+import com.elvencode.schoolba.school.dto.SchoolCatalogueResponse.BranchOfferResponse;
 import com.elvencode.schoolba.school.dto.SchoolCatalogueResponse.BranchResponse;
 import com.elvencode.schoolba.school.dto.SchoolCatalogueResponse.CourseResponse;
 import com.elvencode.schoolba.school.dto.SchoolCatalogueResponse.FaqResponse;
@@ -17,6 +18,7 @@ import java.util.List;
 public class SchoolCatalogueService {
 
     public SchoolCatalogueResponse getCatalogue() {
+        System.out.println("calling fron front end");
         return new SchoolCatalogueResponse(
                 List.of("light", "motorcycle", "threewheeler", "heavy"),
                 stats(),
@@ -32,23 +34,23 @@ public class SchoolCatalogueService {
 
     private List<StatResponse> stats() {
         return List.of(
-                new StatResponse("years", "75"),
-                new StatResponse("drivers", "42,000+"),
-                new StatResponse("pass", "94%"),
+                new StatResponse("years", "15"),
+                new StatResponse("drivers", "49001+"),
+                new StatResponse("pass", "93%"),
                 new StatResponse("branches", "4")
         );
     }
 
     private List<CourseResponse> courses() {
         return List.of(
-                new CourseResponse("car-manual", "light", List.of("B"), 20, 14, 48000, "manual", true),
-                new CourseResponse("car-auto", "light", List.of("B"), 16, 12, 42000, "auto", false),
-                new CourseResponse("van", "light", List.of("B"), 22, 14, 54000, "manual", false),
-                new CourseResponse("motorcycle", "motorcycle", List.of("A"), 12, 8, 26000, "manual", true),
-                new CourseResponse("scooter", "motorcycle", List.of("A1"), 8, 6, 18000, "auto", false),
-                new CourseResponse("threewheeler", "threewheeler", List.of("B1"), 14, 9, 30000, "manual", false),
-                new CourseResponse("lorry", "heavy", List.of("C", "CE"), 26, 18, 96000, "manual", false),
-                new CourseResponse("bus", "heavy", List.of("D", "DE"), 28, 20, 108000, "manual", false)
+                new CourseResponse("car-manual", "light", List.of("B"), 20, 14, "manual", true),
+                new CourseResponse("car-auto", "light", List.of("B"), 16, 12, "auto", false),
+                new CourseResponse("van", "light", List.of("B"), 22, 14, "manual", false),
+                new CourseResponse("motorcycle", "motorcycle", List.of("A"), 12, 8, "manual", true),
+                new CourseResponse("scooter", "motorcycle", List.of("A1"), 8, 6, "auto", false),
+                new CourseResponse("threewheeler", "threewheeler", List.of("B1"), 14, 9, "manual", false),
+                new CourseResponse("lorry", "heavy", List.of("C", "CE"), 26, 18, "manual", false),
+                new CourseResponse("bus", "heavy", List.of("D", "DE"), 28, 20, "manual", false)
         );
     }
 
@@ -73,10 +75,37 @@ public class SchoolCatalogueService {
 
     private List<BranchResponse> branches() {
         return List.of(
-                new BranchResponse("rajagiriya", "branch", "077 480 1120", List.of("light", "motorcycle", "threewheeler", "heavy"), "Cotta Road, Rajagiriya, Sri Lanka"),
-                new BranchResponse("wellawatte", "branch", "077 480 1121", List.of("light", "motorcycle", "threewheeler"), "Galle Road, Colombo 06, Sri Lanka"),
-                new BranchResponse("battaramulla", "branch", "077 480 1122", List.of("light", "motorcycle", "heavy"), "Pannipitiya Road, Battaramulla, Sri Lanka"),
-                new BranchResponse("kaduwela-yard", "yard", "077 480 1123", List.of("light", "motorcycle", "threewheeler"), "Avissawella Road, Kaduwela, Sri Lanka")
+                // Rajagiriya is the branch a first visit opens on. Narrowed to
+                // cars, with nothing in common with Wellawatte, so switching
+                // branch during registration visibly empties the package. The
+                // head office ordinarily teaches every class.
+                new BranchResponse("rajagiriya", "branch", "077 480 1120", true, List.of(
+                        new BranchOfferResponse("car-manual", 12000),
+                        new BranchOfferResponse("car-auto", 10000),
+                        new BranchOfferResponse("van", 15000)
+                ), "Cotta Road, Rajagiriya, Sri Lanka"),
+                // Narrowed for testing alongside Rajagiriya above.
+                new BranchResponse("wellawatte", "branch", "077 480 1121", false, List.of(
+                        new BranchOfferResponse("motorcycle", 26000),
+                        new BranchOfferResponse("scooter", 18000),
+                        new BranchOfferResponse("threewheeler", 30000)
+                ), "Galle Road, Colombo 06, Sri Lanka"),
+                new BranchResponse("battaramulla", "branch", "077 480 1122", false, List.of(
+                        new BranchOfferResponse("car-manual", 52565),
+                        new BranchOfferResponse("car-auto", 46000),
+                        new BranchOfferResponse("van", 58000),
+                        new BranchOfferResponse("motorcycle", 28000),
+                        new BranchOfferResponse("scooter", 19000),
+                        new BranchOfferResponse("lorry", 96000),
+                        new BranchOfferResponse("bus", 108000)
+                ), "Pannipitiya Road, Battaramulla, Sri Lanka"),
+                new BranchResponse("kaduwela-yard", "yard", "077 480 1123", false, List.of(
+                        new BranchOfferResponse("car-manual", 44000),
+                        new BranchOfferResponse("car-auto", 39000),
+                        new BranchOfferResponse("motorcycle", 24000),
+                        new BranchOfferResponse("scooter", 16000),
+                        new BranchOfferResponse("threewheeler", 27000)
+                ), "Avissawella Road, Kaduwela, Sri Lanka")
         );
     }
 

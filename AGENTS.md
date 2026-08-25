@@ -58,10 +58,6 @@ config/
 - Use singular package names, for example `student`, not `students`.
 - Use lowercase package names.
 - Keep controller, service, repository, entity, dto, mapper, and enums separated.
-- If the user explicitly asks to keep commented code, preserve those comments unless they are invalid syntax or break compilation.
-- If the user explicitly asks to commit changes as-is, do not normalize, clean up, or refactor the file contents first; commit the current working-tree state for the requested files.
-- If a method contains a `TODO` comment, do not change that method unless the user explicitly asks for it.
-
 ## Instruction Layering
 
 Use nested `AGENTS.md` files for package-specific rules. Keep this root file for repository-wide conventions only.
@@ -69,6 +65,10 @@ Use nested `AGENTS.md` files for package-specific rules. Keep this root file for
 Codex loads instructions by directory path. When working inside a package such as `student`, also follow the closest nested `AGENTS.md` in that package.
 
 Do not add task-specific Markdown files that Codex must discover by class name. Prefer directory-scoped `AGENTS.md` files because they are loaded natively.
+
+## Commit Guidance
+
+When the task is commit-related, also follow [docs/commit/AGENTS.md](docs/commit/AGENTS.md).
 
 ## Frontend Architecture Reference
 
