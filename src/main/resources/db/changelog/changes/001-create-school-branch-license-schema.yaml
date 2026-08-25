@@ -805,3 +805,31 @@ databaseChangeLog:
               ALTER TABLE branch_contact_number ADD CONSTRAINT ck_branch_contact_number_timestamps CHECK (updated_at >= created_at);
 
               ALTER TABLE branch_license_class ADD CONSTRAINT ck_branch_license_class_price_lkr_positive CHECK (price_lkr > 0);
+
+  - changeSet:
+      id: 016-add-audit-columns
+      author: codex
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              ALTER TABLE school ADD COLUMN created_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
+              ALTER TABLE school ADD COLUMN updated_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
+
+              ALTER TABLE branch ADD COLUMN created_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
+              ALTER TABLE branch ADD COLUMN updated_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
+
+              ALTER TABLE license_class ADD COLUMN created_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
+              ALTER TABLE license_class ADD COLUMN updated_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
+
+              ALTER TABLE school_contact_number ADD COLUMN created_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
+              ALTER TABLE school_contact_number ADD COLUMN updated_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
+
+              ALTER TABLE branch_contact_number ADD COLUMN created_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
+              ALTER TABLE branch_contact_number ADD COLUMN updated_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
+
+              ALTER TABLE branch_license_class ADD COLUMN created_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
+              ALTER TABLE branch_license_class ADD COLUMN updated_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
+              ALTER TABLE branch_license_class ADD COLUMN updated_at timestamp with time zone DEFAULT now() NOT NULL;
+              ALTER TABLE branch_license_class ADD CONSTRAINT ck_branch_license_class_timestamps CHECK (updated_at >= created_at);
