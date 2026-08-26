@@ -833,3 +833,79 @@ databaseChangeLog:
               ALTER TABLE branch_license_class ADD COLUMN updated_by uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL;
               ALTER TABLE branch_license_class ADD COLUMN updated_at timestamp with time zone DEFAULT now() NOT NULL;
               ALTER TABLE branch_license_class ADD CONSTRAINT ck_branch_license_class_timestamps CHECK (updated_at >= created_at);
+
+  - changeSet:
+      id: 017-change-audit-columns-to-varchar
+      author: codex
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              ALTER TABLE school ALTER COLUMN created_by DROP DEFAULT;
+              ALTER TABLE school ALTER COLUMN created_by TYPE varchar(20) USING 'system';
+              ALTER TABLE school ALTER COLUMN created_by SET DEFAULT 'system';
+              ALTER TABLE school ALTER COLUMN updated_by DROP DEFAULT;
+              ALTER TABLE school ALTER COLUMN updated_by TYPE varchar(20) USING 'system';
+              ALTER TABLE school ALTER COLUMN updated_by SET DEFAULT 'system';
+
+              ALTER TABLE branch ALTER COLUMN created_by DROP DEFAULT;
+              ALTER TABLE branch ALTER COLUMN created_by TYPE varchar(20) USING 'system';
+              ALTER TABLE branch ALTER COLUMN created_by SET DEFAULT 'system';
+              ALTER TABLE branch ALTER COLUMN updated_by DROP DEFAULT;
+              ALTER TABLE branch ALTER COLUMN updated_by TYPE varchar(20) USING 'system';
+              ALTER TABLE branch ALTER COLUMN updated_by SET DEFAULT 'system';
+
+              ALTER TABLE license_class ALTER COLUMN created_by DROP DEFAULT;
+              ALTER TABLE license_class ALTER COLUMN created_by TYPE varchar(20) USING 'system';
+              ALTER TABLE license_class ALTER COLUMN created_by SET DEFAULT 'system';
+              ALTER TABLE license_class ALTER COLUMN updated_by DROP DEFAULT;
+              ALTER TABLE license_class ALTER COLUMN updated_by TYPE varchar(20) USING 'system';
+              ALTER TABLE license_class ALTER COLUMN updated_by SET DEFAULT 'system';
+
+              ALTER TABLE school_contact_number ALTER COLUMN created_by DROP DEFAULT;
+              ALTER TABLE school_contact_number ALTER COLUMN created_by TYPE varchar(20) USING 'system';
+              ALTER TABLE school_contact_number ALTER COLUMN created_by SET DEFAULT 'system';
+              ALTER TABLE school_contact_number ALTER COLUMN updated_by DROP DEFAULT;
+              ALTER TABLE school_contact_number ALTER COLUMN updated_by TYPE varchar(20) USING 'system';
+              ALTER TABLE school_contact_number ALTER COLUMN updated_by SET DEFAULT 'system';
+
+              ALTER TABLE branch_contact_number ALTER COLUMN created_by DROP DEFAULT;
+              ALTER TABLE branch_contact_number ALTER COLUMN created_by TYPE varchar(20) USING 'system';
+              ALTER TABLE branch_contact_number ALTER COLUMN created_by SET DEFAULT 'system';
+              ALTER TABLE branch_contact_number ALTER COLUMN updated_by DROP DEFAULT;
+              ALTER TABLE branch_contact_number ALTER COLUMN updated_by TYPE varchar(20) USING 'system';
+              ALTER TABLE branch_contact_number ALTER COLUMN updated_by SET DEFAULT 'system';
+
+              ALTER TABLE branch_license_class ALTER COLUMN created_by DROP DEFAULT;
+              ALTER TABLE branch_license_class ALTER COLUMN created_by TYPE varchar(20) USING 'system';
+              ALTER TABLE branch_license_class ALTER COLUMN created_by SET DEFAULT 'system';
+              ALTER TABLE branch_license_class ALTER COLUMN updated_by DROP DEFAULT;
+              ALTER TABLE branch_license_class ALTER COLUMN updated_by TYPE varchar(20) USING 'system';
+              ALTER TABLE branch_license_class ALTER COLUMN updated_by SET DEFAULT 'system';
+
+  - changeSet:
+      id: 018-change-audit-timestamps-to-local-datetime
+      author: codex
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              ALTER TABLE school ALTER COLUMN created_at TYPE timestamp USING created_at AT TIME ZONE 'UTC';
+              ALTER TABLE school ALTER COLUMN updated_at TYPE timestamp USING updated_at AT TIME ZONE 'UTC';
+
+              ALTER TABLE branch ALTER COLUMN created_at TYPE timestamp USING created_at AT TIME ZONE 'UTC';
+              ALTER TABLE branch ALTER COLUMN updated_at TYPE timestamp USING updated_at AT TIME ZONE 'UTC';
+
+              ALTER TABLE license_class ALTER COLUMN created_at TYPE timestamp USING created_at AT TIME ZONE 'UTC';
+              ALTER TABLE license_class ALTER COLUMN updated_at TYPE timestamp USING updated_at AT TIME ZONE 'UTC';
+
+              ALTER TABLE school_contact_number ALTER COLUMN created_at TYPE timestamp USING created_at AT TIME ZONE 'UTC';
+              ALTER TABLE school_contact_number ALTER COLUMN updated_at TYPE timestamp USING updated_at AT TIME ZONE 'UTC';
+
+              ALTER TABLE branch_contact_number ALTER COLUMN created_at TYPE timestamp USING created_at AT TIME ZONE 'UTC';
+              ALTER TABLE branch_contact_number ALTER COLUMN updated_at TYPE timestamp USING updated_at AT TIME ZONE 'UTC';
+
+              ALTER TABLE branch_license_class ALTER COLUMN created_at TYPE timestamp USING created_at AT TIME ZONE 'UTC';
+              ALTER TABLE branch_license_class ALTER COLUMN updated_at TYPE timestamp USING updated_at AT TIME ZONE 'UTC';

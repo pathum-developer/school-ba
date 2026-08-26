@@ -1,8 +1,8 @@
 package com.elvencode.schoolba.school.entity;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
+import com.elvencode.schoolba.audit.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -18,7 +18,7 @@ import lombok.Setter;
 @DynamicInsert
 @Getter
 @Setter
-public class School {
+public class School extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -48,15 +48,4 @@ public class School {
     @Column(name = "singleton_key", nullable = false, unique = true)
     private Boolean singletonKey;
 
-    @Column(name = "created_at", nullable = false)
-    private OffsetDateTime createdAt;
-
-    @Column(name = "created_by", nullable = false)
-    private UUID createdBy;
-
-    @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
-
-    @Column(name = "updated_by", nullable = false)
-    private UUID updatedBy;
 }

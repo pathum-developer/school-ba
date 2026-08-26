@@ -1,10 +1,10 @@
 package com.elvencode.schoolba.school.branch.entity;
 
-import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import com.elvencode.schoolba.audit.entity.BaseEntity;
 import com.elvencode.schoolba.school.entity.School;
 import com.elvencode.schoolba.school.enums.BranchType;
 import jakarta.persistence.Column;
@@ -42,7 +42,7 @@ import org.hibernate.proxy.HibernateProxy;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @ToString(onlyExplicitlyIncluded = true)
-public class Branch {
+public class Branch extends BaseEntity {
 
     private static final int CODE_MAX_LENGTH = 64;
     private static final int NAME_MAX_LENGTH = 160;
@@ -92,18 +92,6 @@ public class Branch {
 
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
-
-    @Column(name = "created_by", nullable = false, updatable = false)
-    private UUID createdBy;
-
-    @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
-
-    @Column(name = "updated_by", nullable = false)
-    private UUID updatedBy;
 
     public Branch(
             School school,
