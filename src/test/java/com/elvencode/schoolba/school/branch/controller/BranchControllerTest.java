@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import com.elvencode.schoolba.common.exception.GlobalExceptionHandler;
 import com.elvencode.schoolba.school.branch.dto.BranchDto;
-import com.elvencode.schoolba.school.branch.dto.SaveBranchDetailsRequest;
+import com.elvencode.schoolba.school.branch.dto.request.SaveBranchDetailsRequest;
 import com.elvencode.schoolba.school.branch.service.IBranchService;
 import com.elvencode.schoolba.school.enums.BranchType;
 import org.junit.jupiter.api.BeforeEach;
@@ -143,8 +143,20 @@ class BranchControllerTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code")
-                        .value("must contain lowercase letters or digits separated by single hyphens"))
+                        .value("Code must contain lowercase letters or digits separated by single hyphens"))
                 .andExpect(jsonPath("$.name").value("Name must not be blank"));
+
+        verifyNoInteractions(branchService);
+    }
+
+    @Test
+    void rejectsNullSaveBranchDetailsRequest() throws Exception {
+        mockMvc.perform(post("/schools/{schoolId}/branches", SCHOOL_ID)
+                        .accept(API_VERSION_1_MEDIA_TYPE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("null"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorMessage").value("Request body is invalid or unreadable"));
 
         verifyNoInteractions(branchService);
     }

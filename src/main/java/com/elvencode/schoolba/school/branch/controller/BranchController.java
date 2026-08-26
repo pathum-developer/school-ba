@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.elvencode.schoolba.school.branch.dto.BranchDto;
-import com.elvencode.schoolba.school.branch.dto.SaveBranchDetailsRequest;
+import com.elvencode.schoolba.school.branch.dto.request.SaveBranchDetailsRequest;
 import com.elvencode.schoolba.school.branch.service.IBranchService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +30,9 @@ public class BranchController {
     }
 
     @GetMapping(value = "/active", version = API_VERSION_1_BASELINE)
-    public ResponseEntity<List<BranchDto>> findActiveBranchesBySchoolId(@PathVariable UUID schoolId) {
+    public ResponseEntity<List<BranchDto>> findActiveBranchesBySchoolId(
+            @PathVariable UUID schoolId
+    ) {
         return ResponseEntity.ok(branchService.findActiveBranchesBySchoolId(schoolId));
     }
 

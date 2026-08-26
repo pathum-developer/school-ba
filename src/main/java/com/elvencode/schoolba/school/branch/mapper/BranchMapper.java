@@ -3,7 +3,7 @@ package com.elvencode.schoolba.school.branch.mapper;
 import java.util.List;
 
 import com.elvencode.schoolba.school.branch.dto.BranchDto;
-import com.elvencode.schoolba.school.branch.dto.SaveBranchDetailsRequest;
+import com.elvencode.schoolba.school.branch.dto.request.SaveBranchDetailsRequest;
 import com.elvencode.schoolba.school.branch.entity.Branch;
 import com.elvencode.schoolba.school.entity.School;
 import org.springframework.stereotype.Component;

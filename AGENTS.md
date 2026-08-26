@@ -8,56 +8,11 @@ Base Java package:
 
 `com.elvencode.schoolba`
 
-## Package Structure
-
-Follow a feature/domain-based package structure.
-
-Use lowercase singular domain names, for example:
-
-- `student`
-- `user`
-- `auth`
-- `school`
-
-Each domain package should use this structure when applicable:
-
-```text
-domain/
-  controller/
-  service/
-  repository/
-  entity/
-  dto/
-  mapper/
-  enums/
-```
-
-Shared project packages should use this structure:
-
-```text
-common/
-  dto/
-  exception/
-  mapper/
-  util/
-
-config/
-  security/
-  web/
-```
-
 ## Rules
 
+- Java package creation and folder structure rules live in `src/main/java/com/elvencode/schoolba/AGENTS.md`.
 - Do not create random top-level packages for domain logic.
-- Put school-level catalogue and public school profile code under `school`.
-- Put student-related code under `student`.
-- Put user-related code under `user`.
-- Put authentication and authorization code under `auth`.
-- Put reusable helpers, shared DTOs, exceptions, mappers, and utilities under `common`.
-- Put Spring configuration classes under `config`.
-- Use singular package names, for example `student`, not `students`.
-- Use lowercase package names.
-- Keep controller, service, repository, entity, dto, mapper, and enums separated.
+
 ## Instruction Layering
 
 Use nested `AGENTS.md` files for package-specific rules. Keep this root file for repository-wide conventions only.

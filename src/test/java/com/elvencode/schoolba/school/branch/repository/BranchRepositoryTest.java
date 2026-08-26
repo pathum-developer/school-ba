@@ -21,7 +21,7 @@ class BranchRepositoryTest {
 
     @Test
     void findsActiveBranchByStableSchoolAndBranchCodes() {
-        assertThat(branchRepository.findBySchoolCodeAndCodeAndActiveTrue(ELVEN_SCHOOL_CODE, "rajagiriya"))
+        assertThat(branchRepository.findBySchool_CodeAndCodeAndActiveTrue(ELVEN_SCHOOL_CODE, "rajagiriya"))
                 .hasValueSatisfying(branch -> {
                     assertThat(branch.getCode()).isEqualTo("rajagiriya");
                     assertThat(branch.getName()).isEqualTo("Rajagiriya");
@@ -33,19 +33,19 @@ class BranchRepositoryTest {
 
     @Test
     void findsActiveHeadOfficeForSchool() {
-        assertThat(branchRepository.findBySchoolIdAndHeadOfficeTrueAndActiveTrue(ELVEN_SCHOOL_ID))
+        assertThat(branchRepository.findBySchool_IdAndHeadOfficeTrueAndActiveTrue(ELVEN_SCHOOL_ID))
                 .hasValueSatisfying(branch -> assertThat(branch.getCode()).isEqualTo("rajagiriya"));
     }
 
     @Test
     void detectsDuplicateBranchCodeWithinSchool() {
-        assertThat(branchRepository.existsBySchoolIdAndCode(ELVEN_SCHOOL_ID, "wellawatte")).isTrue();
-        assertThat(branchRepository.existsBySchoolIdAndCode(ELVEN_SCHOOL_ID, "missing-branch")).isFalse();
+        assertThat(branchRepository.existsBySchool_IdAndCode(ELVEN_SCHOOL_ID, "wellawatte")).isTrue();
+        assertThat(branchRepository.existsBySchool_IdAndCode(ELVEN_SCHOOL_ID, "missing-branch")).isFalse();
     }
 
     @Test
     void listsActiveBranchesWithHeadOfficeFirstThenName() {
-        assertThat(branchRepository.findAllBySchoolCodeAndActiveTrueOrderByHeadOfficeDescNameAsc(ELVEN_SCHOOL_CODE))
+        assertThat(branchRepository.findAllBySchool_CodeAndActiveTrueOrderByHeadOfficeDescNameAsc(ELVEN_SCHOOL_CODE))
                 .extracting(Branch::getCode)
                 .containsExactly("rajagiriya", "battaramulla", "kaduwela-yard", "wellawatte");
     }

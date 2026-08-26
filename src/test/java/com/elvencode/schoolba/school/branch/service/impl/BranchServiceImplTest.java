@@ -1,4 +1,4 @@
-package com.elvencode.schoolba.school.branch.service;
+package com.elvencode.schoolba.school.branch.service.impl;
 
 import java.util.List;
 import java.util.Optional;
@@ -7,7 +7,7 @@ import java.util.UUID;
 import com.elvencode.schoolba.common.exception.DuplicateResourceException;
 import com.elvencode.schoolba.common.exception.ResourceNotFoundException;
 import com.elvencode.schoolba.school.branch.dto.BranchDto;
-import com.elvencode.schoolba.school.branch.dto.SaveBranchDetailsRequest;
+import com.elvencode.schoolba.school.branch.dto.request.SaveBranchDetailsRequest;
 import com.elvencode.schoolba.school.branch.entity.Branch;
 import com.elvencode.schoolba.school.branch.mapper.BranchMapper;
 import com.elvencode.schoolba.school.branch.repository.BranchRepository;
@@ -30,7 +30,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class BranchServiceTest {
+class BranchServiceImplTest {
 
     private static final String SCHOOL_CODE = "elven";
     private static final UUID SCHOOL_ID = UUID.fromString("20000000-0000-0000-0000-000000000001");
@@ -42,25 +42,19 @@ class BranchServiceTest {
     @Mock
     private SchoolRepository schoolRepository;
 
-    private BranchService branchService;
+    private BranchServiceImpl branchService;
 
     @BeforeEach
     void setUp() {
-        branchService = new BranchService(branchRepository, schoolRepository, new BranchMapper());
+        branchService = new BranchServiceImpl(branchRepository, schoolRepository, new BranchMapper());
     }
 
     @Test
     void savesBranchDetails() {
         School school = school();
-        SaveBranchDetailsRequest request = new SaveBranchDetailsRequest(
-                "nawala",
-                "Nawala",
-                BranchType.BRANCH,
-                "Nawala Road, Nawala, Sri Lanka",
-                false
-        );
+        SaveBranchDetailsRequest request = request("nawala", false);
         when(schoolRepository.findById(SCHOOL_ID)).thenReturn(Optional.of(school));
-        when(branchRepository.existsBySchoolIdAndCode(SCHOOL_ID, "nawala")).thenReturn(false);
+        when(branchRepository.existsBySchool_IdAndCode(SCHOOL_ID, "nawala")).thenReturn(false);
         when(branchRepository.save(any(Branch.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         BranchDto branchDto = branchService.saveBranchDetails(SCHOOL_ID, request);
@@ -81,13 +75,7 @@ class BranchServiceTest {
 
     @Test
     void rejectsSaveWhenSchoolDoesNotExist() {
-        SaveBranchDetailsRequest request = new SaveBranchDetailsRequest(
-                "nawala",
-                "Nawala",
-                BranchType.BRANCH,
-                "Nawala Road, Nawala, Sri Lanka",
-                false
-        );
+        SaveBranchDetailsRequest request = request("nawala", false);
         when(schoolRepository.findById(SCHOOL_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> branchService.saveBranchDetails(SCHOOL_ID, request))
@@ -98,16 +86,19 @@ class BranchServiceTest {
     }
 
     @Test
+    void rejectsNullSaveRequest() {
+        assertThatThrownBy(() -> branchService.saveBranchDetails(SCHOOL_ID, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("request must not be null");
+
+        verifyNoInteractions(branchRepository, schoolRepository);
+    }
+
+    @Test
     void rejectsSaveWhenBranchCodeAlreadyExistsForSchool() {
-        SaveBranchDetailsRequest request = new SaveBranchDetailsRequest(
-                "rajagiriya",
-                "Rajagiriya",
-                BranchType.BRANCH,
-                "Cotta Road, Rajagiriya, Sri Lanka",
-                true
-        );
+        SaveBranchDetailsRequest request = request(BRANCH_CODE, true);
         when(schoolRepository.findById(SCHOOL_ID)).thenReturn(Optional.of(school()));
-        when(branchRepository.existsBySchoolIdAndCode(SCHOOL_ID, BRANCH_CODE)).thenReturn(true);
+        when(branchRepository.existsBySchool_IdAndCode(SCHOOL_ID, BRANCH_CODE)).thenReturn(true);
 
         assertThatThrownBy(() -> branchService.saveBranchDetails(SCHOOL_ID, request))
                 .isInstanceOf(DuplicateResourceException.class)
@@ -117,22 +108,16 @@ class BranchServiceTest {
     }
 
     @Test
-    void rejectsSaveWhenActiveHeadOfficeAlreadyExistsForSchool() {
-        SaveBranchDetailsRequest request = new SaveBranchDetailsRequest(
-                "nawala",
-                "Nawala",
-                BranchType.BRANCH,
-                "Nawala Road, Nawala, Sri Lanka",
-                true
-        );
+    void rejectsSaveWhenHeadOfficeAlreadyExistsForSchool() {
+        SaveBranchDetailsRequest request = request("nawala", true);
         when(schoolRepository.findById(SCHOOL_ID)).thenReturn(Optional.of(school()));
-        when(branchRepository.existsBySchoolIdAndCode(SCHOOL_ID, "nawala")).thenReturn(false);
-        when(branchRepository.findBySchoolIdAndHeadOfficeTrueAndActiveTrue(SCHOOL_ID))
+        when(branchRepository.existsBySchool_IdAndCode(SCHOOL_ID, "nawala")).thenReturn(false);
+        when(branchRepository.findBySchool_IdAndHeadOfficeTrue(SCHOOL_ID))
                 .thenReturn(Optional.of(branch("rajagiriya", "Rajagiriya", BranchType.BRANCH, true)));
 
         assertThatThrownBy(() -> branchService.saveBranchDetails(SCHOOL_ID, request))
                 .isInstanceOf(DuplicateResourceException.class)
-                .hasMessage("School already has an active head office branch: rajagiriya");
+                .hasMessage("School already has a head office branch: rajagiriya");
 
         verify(branchRepository, never()).save(any(Branch.class));
     }
@@ -140,7 +125,7 @@ class BranchServiceTest {
     @Test
     void findsActiveBranchBySchoolAndBranchCodesAsDto() {
         Branch branch = branch(BRANCH_CODE, "Rajagiriya", BranchType.BRANCH, true);
-        when(branchRepository.findBySchoolCodeAndCodeAndActiveTrue(SCHOOL_CODE, BRANCH_CODE))
+        when(branchRepository.findBySchool_CodeAndCodeAndActiveTrue(SCHOOL_CODE, BRANCH_CODE))
                 .thenReturn(Optional.of(branch));
 
         assertThat(branchService.findActiveBranchBySchoolCodeAndBranchCode(SCHOOL_CODE, BRANCH_CODE))
@@ -156,7 +141,7 @@ class BranchServiceTest {
 
     @Test
     void returnsEmptyWhenActiveBranchDoesNotExist() {
-        when(branchRepository.findBySchoolCodeAndCodeAndActiveTrue(SCHOOL_CODE, "missing-branch"))
+        when(branchRepository.findBySchool_CodeAndCodeAndActiveTrue(SCHOOL_CODE, "missing-branch"))
                 .thenReturn(Optional.empty());
 
         assertThat(branchService.findActiveBranchBySchoolCodeAndBranchCode(SCHOOL_CODE, "missing-branch"))
@@ -165,7 +150,7 @@ class BranchServiceTest {
 
     @Test
     void listsActiveBranchesAsDtos() {
-        when(branchRepository.findAllBySchoolCodeAndActiveTrueOrderByHeadOfficeDescNameAsc(SCHOOL_CODE))
+        when(branchRepository.findAllBySchool_CodeAndActiveTrueOrderByHeadOfficeDescNameAsc(SCHOOL_CODE))
                 .thenReturn(List.of(
                         branch("rajagiriya", "Rajagiriya", BranchType.BRANCH, true),
                         branch("kaduwela-yard", "Kaduwela Training Yard", BranchType.YARD, false)
@@ -174,6 +159,34 @@ class BranchServiceTest {
         assertThat(branchService.findActiveBranchesBySchoolCode(SCHOOL_CODE))
                 .extracting(BranchDto::code)
                 .containsExactly("rajagiriya", "kaduwela-yard");
+    }
+
+    @Test
+    void returnsEmptyActiveBranchListWhenSchoolExists() {
+        when(branchRepository.findAllBySchool_IdAndActiveTrueOrderByHeadOfficeDescNameAsc(SCHOOL_ID))
+                .thenReturn(List.of());
+        when(schoolRepository.existsById(SCHOOL_ID)).thenReturn(true);
+
+        assertThat(branchService.findActiveBranchesBySchoolId(SCHOOL_ID)).isEmpty();
+    }
+
+    @Test
+    void rejectsActiveBranchListWhenSchoolDoesNotExist() {
+        when(branchRepository.findAllBySchool_IdAndActiveTrueOrderByHeadOfficeDescNameAsc(SCHOOL_ID))
+                .thenReturn(List.of());
+        when(schoolRepository.existsById(SCHOOL_ID)).thenReturn(false);
+
+        assertThatThrownBy(() -> branchService.findActiveBranchesBySchoolId(SCHOOL_ID))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("School not found with id: " + SCHOOL_ID);
+    }
+
+    private static SaveBranchDetailsRequest request(String code, boolean headOffice) {
+        String name = code.equals(BRANCH_CODE) ? "Rajagiriya" : "Nawala";
+        String address = code.equals(BRANCH_CODE)
+                ? "Cotta Road, Rajagiriya, Sri Lanka"
+                : "Nawala Road, Nawala, Sri Lanka";
+        return new SaveBranchDetailsRequest(code, name, BranchType.BRANCH, address, headOffice);
     }
 
     private static Branch branch(String code, String name, BranchType branchType, boolean headOffice) {

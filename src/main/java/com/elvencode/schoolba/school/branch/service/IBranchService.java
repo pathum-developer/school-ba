@@ -5,7 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.elvencode.schoolba.school.branch.dto.BranchDto;
-import com.elvencode.schoolba.school.branch.dto.SaveBranchDetailsRequest;
+import com.elvencode.schoolba.school.branch.dto.request.SaveBranchDetailsRequest;
 
 public interface IBranchService {
 
