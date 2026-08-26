@@ -1,6 +1,5 @@
 package com.elvencode.schoolba.ztemplate.controller;
 
-import com.elvencode.schoolba.school.branch.dto.BranchDetailsResponse;
 import com.elvencode.schoolba.ztemplate.dto.DtoTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
