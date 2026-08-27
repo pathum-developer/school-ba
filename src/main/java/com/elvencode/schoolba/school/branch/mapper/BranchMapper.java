@@ -6,21 +6,11 @@ import com.elvencode.schoolba.school.branch.dto.BranchDto;
 import com.elvencode.schoolba.school.branch.dto.request.SaveBranchDetailsRequest;
 import com.elvencode.schoolba.school.branch.entity.Branch;
 import com.elvencode.schoolba.school.entity.School;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Component;
 
 @Component
 public class BranchMapper {
-
-    public Branch toBranch(School school, SaveBranchDetailsRequest request) {
-        return new Branch(
-                school,
-                request.code(),
-                request.name(),
-                request.branchType(),
-                request.address(),
-                request.headOffice()
-        );
-    }
 
     public BranchDto toBranchDto(Branch branch) {
         return new BranchDto(
@@ -38,5 +28,12 @@ public class BranchMapper {
         return branches.stream()
                 .map(this::toBranchDto)
                 .toList();
+    }
+
+    public Branch toBranchEntity(School school, SaveBranchDetailsRequest request) {
+        Branch brEntity = new Branch();
+        BeanUtils.copyProperties(request,brEntity);
+        brEntity.setSchool(school);
+        return brEntity;
     }
 }

@@ -54,46 +54,8 @@ public class BranchServiceImpl implements IBranchService {
             ensureHeadOfficeDoesNotExist(schoolId);
         }
 
-        Branch branch = branchMapper.toBranch(school, request);
+        Branch branch = branchMapper.toBranchEntity(school, request);
         return branchMapper.toBranchDto(branchRepository.save(branch));
-    }
-
-    @Override
-    public Optional<BranchDto> findActiveBranchById(UUID id) {
-        return branchRepository.findByIdAndActiveTrue(requireId(id, "branch id"))
-                .map(branchMapper::toBranchDto);
-    }
-
-    @Override
-    public Optional<BranchDto> findBranchBySchoolIdAndCode(UUID schoolId, String branchCode) {
-        return branchRepository.findBySchool_IdAndCode(
-                        requireId(schoolId, "school id"),
-                        normalizeCode(branchCode, "branch code")
-                )
-                .map(branchMapper::toBranchDto);
-    }
-
-    @Override
-    public Optional<BranchDto> findActiveBranchBySchoolCodeAndBranchCode(String schoolCode, String branchCode) {
-        return branchRepository.findBySchool_CodeAndCodeAndActiveTrue(
-                        normalizeCode(schoolCode, "school code"),
-                        normalizeCode(branchCode, "branch code")
-                )
-                .map(branchMapper::toBranchDto);
-    }
-
-    @Override
-    public Optional<BranchDto> findActiveHeadOffice(UUID schoolId) {
-        return branchRepository.findBySchool_IdAndHeadOfficeTrueAndActiveTrue(requireId(schoolId, "school id"))
-                .map(branchMapper::toBranchDto);
-    }
-
-    @Override
-    public boolean existsBySchoolIdAndCode(UUID schoolId, String branchCode) {
-        return branchRepository.existsBySchool_IdAndCode(
-                requireId(schoolId, "school id"),
-                normalizeCode(branchCode, "branch code")
-        );
     }
 
     @Override
@@ -107,15 +69,6 @@ public class BranchServiceImpl implements IBranchService {
         }
 
         return branchMapper.toBranchDtoList(branches);
-    }
-
-    @Override
-    public List<BranchDto> findActiveBranchesBySchoolCode(String schoolCode) {
-        return branchMapper.toBranchDtoList(
-                branchRepository.findAllBySchool_CodeAndActiveTrueOrderByHeadOfficeDescNameAsc(
-                        normalizeCode(schoolCode, "school code")
-                )
-        );
     }
 
     private School findSchool(UUID schoolId) {

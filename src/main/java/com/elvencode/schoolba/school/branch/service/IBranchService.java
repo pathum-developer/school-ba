@@ -11,17 +11,6 @@ public interface IBranchService {
 
     BranchDto saveBranchDetails(UUID schoolId, SaveBranchDetailsRequest request);
 
-    Optional<BranchDto> findActiveBranchById(UUID id);
-
-    Optional<BranchDto> findBranchBySchoolIdAndCode(UUID schoolId, String branchCode);
-
-    Optional<BranchDto> findActiveBranchBySchoolCodeAndBranchCode(String schoolCode, String branchCode);
-
-    Optional<BranchDto> findActiveHeadOffice(UUID schoolId);
-
-    boolean existsBySchoolIdAndCode(UUID schoolId, String branchCode);
-
     List<BranchDto> findActiveBranchesBySchoolId(UUID schoolId);
 
-    List<BranchDto> findActiveBranchesBySchoolCode(String schoolCode);
 }
