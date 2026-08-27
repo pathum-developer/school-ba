@@ -6,4 +6,3 @@ This tree owns automated tests.
 
 - Mirror production package names where practical.
 - Prefer focused tests for changed behavior.
-- When Java code changes, run `mvn test`.
