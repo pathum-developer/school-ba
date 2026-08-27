@@ -1,0 +1,35 @@
+# Changelog used only by tests.
+#
+# It builds the schema from the production changelog and then empties every table, so each test
+# starts from a known-empty database and inserts exactly the rows it needs.
+#
+# The production changelog has to run with the "reference" context active: changesets 007 and 009
+# declare that context but also carry schema changes (three ADD COLUMN statements and one
+# SET NOT NULL on license_class), so changeset 015 fails without them. Loading the reference rows
+# and then removing them keeps this file free of assumptions about that entanglement.
+databaseChangeLog:
+  - include:
+      file: db/changelog/changes/001-create-school-branch-license-schema.yaml
+
+  - changeSet:
+      id: test-001-empty-all-tables
+      author: test
+      runAlways: true
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              DO $$
+              DECLARE
+                  target_table text;
+              BEGIN
+                  FOR target_table IN
+                      SELECT tablename
+                      FROM pg_tables
+                      WHERE schemaname = 'public'
+                        AND tablename NOT LIKE 'databasechangelog%'
+                  LOOP
+                      EXECUTE format('TRUNCATE TABLE %I CASCADE', target_table);
+                  END LOOP;
+              END $$;
