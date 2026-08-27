@@ -1,13 +1,18 @@
 package com.elvencode.schoolba.school.entity;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import com.elvencode.schoolba.audit.entity.BaseEntity;
+import com.elvencode.schoolba.school.branch.entity.Branch;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.DynamicInsert;
 import lombok.Getter;
@@ -47,5 +52,8 @@ public class School extends BaseEntity {
 
     @Column(name = "singleton_key", nullable = false, unique = true)
     private Boolean singletonKey;
+
+    @OneToMany(mappedBy = "school", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Branch> branches = new ArrayList<>();
 
 }
