@@ -1,7 +1,7 @@
 package com.elvencode.schoolba.auth.dto;
 
 public record LoginResponseDto(
-        String status,
+        String message,
         UserDto user,
         String token
 ) {

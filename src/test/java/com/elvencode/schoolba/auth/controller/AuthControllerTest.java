@@ -35,7 +35,7 @@ class AuthControllerTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("OK"))
+                .andExpect(jsonPath("$.message").value("OK"))
                 .andExpect(jsonPath("$.user.username").value("ElvenUser"))
                 .andExpect(jsonPath("$.user.roleList[*]", containsInAnyOrder("USER")))
                 .andExpect(jsonPath("$.token", nullValue()));

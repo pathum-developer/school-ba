@@ -13,6 +13,7 @@ Base Java package:
 - Java package creation and folder structure rules live in `src/main/java/com/elvencode/schoolba/AGENTS.md`.
 - Do not create random top-level packages for domain logic.
 - Name list-valued fields, variables, record components, and DTO properties with a `List` suffix, for example `contactNoList`. Keep single-object names singular.
+- When handling exceptions that can occur in multiple controller classes, rely on the global exception handler instead of duplicating controller-local exception handling.
 
 ## Review Mode
 

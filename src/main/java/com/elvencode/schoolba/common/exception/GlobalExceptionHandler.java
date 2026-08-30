@@ -6,13 +6,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.elvencode.schoolba.auth.exception.InvalidLoginCredentialsException;
+import com.elvencode.schoolba.auth.exception.LoginAuthenticationException;
 import com.elvencode.schoolba.common.dto.ErrorResponseDto;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -71,15 +72,29 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponseDto, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorResponseDto> handleAuthenticationException(
-            AuthenticationException exception,
+    @ExceptionHandler(InvalidLoginCredentialsException.class)
+    public ResponseEntity<ErrorResponseDto> handleInvalidLoginCredentialsException(
+            InvalidLoginCredentialsException exception,
             WebRequest webRequest
     ) {
         ErrorResponseDto errorResponseDto = new ErrorResponseDto(
                 webRequest.getDescription(false),
                 HttpStatus.UNAUTHORIZED,
-                "Invalid username or password",
+                exception.getMessage(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponseDto, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(LoginAuthenticationException.class)
+    public ResponseEntity<ErrorResponseDto> handleLoginAuthenticationException(
+            LoginAuthenticationException exception,
+            WebRequest webRequest
+    ) {
+        ErrorResponseDto errorResponseDto = new ErrorResponseDto(
+                webRequest.getDescription(false),
+                HttpStatus.UNAUTHORIZED,
+                exception.getMessage(),
                 LocalDateTime.now()
         );
         return new ResponseEntity<>(errorResponseDto, HttpStatus.UNAUTHORIZED);
