@@ -13,6 +13,7 @@ public class PathsConfig {
         return List.of(
                 "/swagger-ui/**",
                 "/api/v3/api-docs/**",
+                "/api/login/public",
                 "/swagger-resources/**",
                 "/swagger-ui.html",
                 "/webjars/**"
