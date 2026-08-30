@@ -1,9 +1,12 @@
 package com.elvencode.schoolba.school.branch.entity;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import com.elvencode.schoolba.audit.entity.BaseEntity;
 import com.elvencode.schoolba.school.entity.School;
 import com.elvencode.schoolba.school.enums.BranchType;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,6 +18,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.NotBlank;
@@ -88,5 +92,8 @@ public class Branch extends BaseEntity {
 
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
+
+    @OneToMany(mappedBy = "branch", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BranchContactNo> contactNoList = new ArrayList<>();
 
 }

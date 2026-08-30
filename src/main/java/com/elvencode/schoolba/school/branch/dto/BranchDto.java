@@ -1,5 +1,7 @@
 package com.elvencode.schoolba.school.branch.dto;
 
+import java.util.List;
+
 import com.elvencode.schoolba.school.enums.BranchType;
 
 public record BranchDto(
@@ -9,6 +11,7 @@ public record BranchDto(
         BranchType branchType,
         String address,
         boolean headOffice,
-        boolean active
+        boolean active,
+        List<ContactNoDto> contactNoList
 ) {
 }
