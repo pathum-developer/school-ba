@@ -1,12 +1,12 @@
 package com.elvencode.schoolba.school.branch.service.impl;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import com.elvencode.schoolba.common.exception.DuplicateResourceException;
 import com.elvencode.schoolba.common.exception.ResourceNotFoundException;
 import com.elvencode.schoolba.school.branch.dto.BranchDto;
+import com.elvencode.schoolba.school.branch.dto.request.PatchBranchDetailsRequest;
 import com.elvencode.schoolba.school.branch.dto.request.SaveBranchDetailsRequest;
 import com.elvencode.schoolba.school.branch.entity.Branch;
 import com.elvencode.schoolba.school.branch.mapper.BranchMapper;
@@ -59,16 +59,48 @@ public class BranchServiceImpl implements IBranchService {
     }
 
     @Override
+    @Transactional
+    public BranchDto patchBranchDetails(UUID schoolId, String branchCode, PatchBranchDetailsRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("request must not be null");
+        }
+        UUID requiredSchoolId = requireId(schoolId, "school id");
+        String requiredBranchCode = normalizeCode(branchCode, "branch code");
+
+        Branch branch = branchRepository.findDetailedBySchool_IdAndCode(requiredSchoolId, requiredBranchCode)
+                .orElseThrow(() -> branchNotFound(requiredSchoolId, requiredBranchCode));
+
+        if (Boolean.TRUE.equals(request.headOffice())) {
+            ensureHeadOfficeDoesNotExist(requiredSchoolId, branch.getId());
+        }
+
+        branchMapper.patchBranchEntity(branch, request);
+        return branchMapper.toBranchDto(branch);
+    }
+
+    @Override
     public List<BranchDto> findActiveBranchesBySchoolId(UUID schoolId) {
         UUID requiredSchoolId = requireId(schoolId, "school id");
-        List<Branch> branches = branchRepository
+        List<Branch> branchList = branchRepository
                 .findAllBySchool_IdAndActiveTrueOrderByHeadOfficeDescNameAsc(requiredSchoolId);
 
-        if (branches.isEmpty() && !schoolRepository.existsById(requiredSchoolId)) {
+        if (branchList.isEmpty() && !schoolRepository.existsById(requiredSchoolId)) {
             throw schoolNotFound(requiredSchoolId);
         }
 
-        return branchMapper.toBranchDtoList(branches);
+        return branchMapper.toBranchDtoList(branchList);
+    }
+
+    @Override
+    @Transactional
+    public void deleteBranchByCode(UUID schoolId, String branchCode) {
+        UUID requiredSchoolId = requireId(schoolId, "school id");
+        String requiredBranchCode = normalizeCode(branchCode, "branch code");
+
+        Branch branch = branchRepository.findBySchool_IdAndCode(requiredSchoolId, requiredBranchCode)
+                .orElseThrow(() -> branchNotFound(requiredSchoolId, requiredBranchCode));
+
+        branchRepository.delete(branch);
     }
 
     private School findSchool(UUID schoolId) {
@@ -78,7 +110,12 @@ public class BranchServiceImpl implements IBranchService {
     }
 
     private void ensureHeadOfficeDoesNotExist(UUID schoolId) {
+        ensureHeadOfficeDoesNotExist(schoolId, null);
+    }
+
+    private void ensureHeadOfficeDoesNotExist(UUID schoolId, UUID excludedBranchId) {
         branchRepository.findBySchool_IdAndHeadOfficeTrue(schoolId)
+                .filter(headOffice -> excludedBranchId == null || !excludedBranchId.equals(headOffice.getId()))
                 .ifPresent(headOffice -> {
                     throw new DuplicateResourceException(
                             "School already has a head office branch: " + headOffice.getCode()
@@ -88,6 +125,15 @@ public class BranchServiceImpl implements IBranchService {
 
     private static ResourceNotFoundException schoolNotFound(UUID schoolId) {
         return new ResourceNotFoundException("School not found with id: " + schoolId);
+    }
+
+    private ResourceNotFoundException branchNotFound(UUID schoolId, String branchCode) {
+        if (!schoolRepository.existsById(schoolId)) {
+            return schoolNotFound(schoolId);
+        }
+        return new ResourceNotFoundException(
+                "Branch not found with code: " + branchCode + " for school id: " + schoolId
+        );
     }
 
     private static UUID requireId(UUID id, String fieldName) {
