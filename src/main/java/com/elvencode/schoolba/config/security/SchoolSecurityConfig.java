@@ -15,7 +15,7 @@ public class SchoolSecurityConfig {
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         return http.authorizeHttpRequests(requests -> requests.anyRequest().authenticated())
-                .formLogin(withDefaults())
+                .formLogin(flc -> flc.disable())
                 .httpBasic(withDefaults())
                 .build();
     }
