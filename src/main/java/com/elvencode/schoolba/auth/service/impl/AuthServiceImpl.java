@@ -5,6 +5,7 @@ import com.elvencode.schoolba.auth.dto.UserDto;
 import com.elvencode.schoolba.auth.dto.request.LoginRequestDto;
 import com.elvencode.schoolba.auth.exception.InvalidLoginCredentialsException;
 import com.elvencode.schoolba.auth.exception.LoginAuthenticationException;
+import com.elvencode.schoolba.auth.jwt.JwtUtil;
 import com.elvencode.schoolba.auth.service.IAuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -12,28 +13,25 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class AuthServiceImpl implements IAuthService {
 
-    private static final String ROLE_PREFIX = "ROLE_";
-
     private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
 
-    public AuthServiceImpl(AuthenticationManager authenticationManager) {
+    public AuthServiceImpl(AuthenticationManager authenticationManager, JwtUtil jwtUtil) {
         this.authenticationManager = authenticationManager;
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
     public LoginResponseDto login(LoginRequestDto loginRequestDto) {
         Authentication authentication = authenticate(loginRequestDto);
+        UserDto user = new UserDto(authentication.getName());
 
-        UserDto user = new UserDto(authentication.getName(), roleList(authentication));
-        return new LoginResponseDto(HttpStatus.OK.getReasonPhrase(), user, null);
+        return new LoginResponseDto(HttpStatus.OK.getReasonPhrase(), user, jwtUtil.generateJwtToken(authentication));
     }
 
     private Authentication authenticate(LoginRequestDto loginRequestDto) {
@@ -49,21 +47,5 @@ public class AuthServiceImpl implements IAuthService {
         } catch (AuthenticationException exception) {
             throw new LoginAuthenticationException("Authentication failed", exception);
         }
-    }
-
-    private List<String> roleList(Authentication authentication) {
-        return authentication.getAuthorities()
-                .stream()
-                .map(GrantedAuthority::getAuthority)
-                .filter(authority -> authority.startsWith(ROLE_PREFIX))
-                .map(this::removeRolePrefix)
-                .toList();
-    }
-
-    private String removeRolePrefix(String authority) {
-        if (authority.startsWith(ROLE_PREFIX)) {
-            return authority.substring(ROLE_PREFIX.length());
-        }
-        return authority;
     }
 }

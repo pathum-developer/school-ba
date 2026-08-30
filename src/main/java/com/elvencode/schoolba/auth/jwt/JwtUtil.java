@@ -1,4 +1,4 @@
-package com.elvencode.schoolba.config.security.util;
+package com.elvencode.schoolba.auth.jwt;
 
 import com.elvencode.schoolba.common.constants.ApplicationConstant;
 import io.jsonwebtoken.Jwts;
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.stream.Collectors;
+import java.util.List;
 
 @Component
 public class JwtUtil {
@@ -40,19 +40,19 @@ public class JwtUtil {
                 .issuer(JWT_ISSUER)
                 .subject(JWT_SUBJECT)
                 .claim("username", authentication.getName())
-                .claim("roles", roles(authentication))
+                .claim("roles", roleList(authentication))
                 .issuedAt(issuedAt)
                 .expiration(expiration)
                 .signWith(secretKey)
                 .compact();
     }
 
-    private String roles(Authentication authentication) {
+    private List<String> roleList(Authentication authentication) {
         return authentication.getAuthorities()
                 .stream()
                 .map(GrantedAuthority::getAuthority)
                 .filter(authority -> authority.startsWith(ROLE_PREFIX))
                 .map(authority -> authority.substring(ROLE_PREFIX.length()))
-                .collect(Collectors.joining(","));
+                .toList();
     }
 }
