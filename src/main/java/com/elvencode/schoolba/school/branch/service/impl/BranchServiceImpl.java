@@ -81,6 +81,17 @@ public class BranchServiceImpl implements IBranchService {
     }
 
     @Override
+    public BranchDto findBranchDetailsByCode(UUID schoolId, String branchCode) {
+        UUID requiredSchoolId = requireId(schoolId, "school id");
+        String requiredBranchCode = normalizeCode(branchCode, "branch code");
+
+        Branch branch = branchRepository.findDetailedBySchool_IdAndCode(requiredSchoolId, requiredBranchCode)
+                .orElseThrow(() -> branchNotFound(requiredSchoolId, requiredBranchCode));
+
+        return branchMapper.toBranchDto(branch);
+    }
+
+    @Override
     public List<BranchDto> findActiveBranchesBySchoolId(UUID schoolId) {
         UUID requiredSchoolId = requireId(schoolId, "school id");
         List<Branch> branchList = branchRepository

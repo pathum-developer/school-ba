@@ -13,6 +13,8 @@ public interface IBranchService {
 
     BranchDto patchBranchDetails(UUID schoolId, String branchCode, PatchBranchDetailsRequest request);
 
+    BranchDto findBranchDetailsByCode(UUID schoolId, String branchCode);
+
     List<BranchDto> findActiveBranchesBySchoolId(UUID schoolId);
 
     void deleteBranchByCode(UUID schoolId, String branchCode);
