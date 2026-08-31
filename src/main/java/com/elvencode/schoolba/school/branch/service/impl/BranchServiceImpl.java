@@ -112,10 +112,10 @@ public class BranchServiceImpl implements IBranchService {
         UUID requiredSchoolId = requireId(schoolId, "school id");
         String requiredBranchCode = normalizeCode(branchCode, "branch code");
 
-        Branch branch = branchRepository.findBySchool_IdAndCode(requiredSchoolId, requiredBranchCode)
-                .orElseThrow(() -> branchNotFound(requiredSchoolId, requiredBranchCode));
-
-        branchRepository.delete(branch);
+        int deletedRowCount = branchRepository.deleteBySchoolIdAndCode(requiredSchoolId, requiredBranchCode);
+        if (deletedRowCount == 0) {
+            throw branchNotFound(requiredSchoolId, requiredBranchCode);
+        }
     }
 
     private School findSchool(UUID schoolId) {
