@@ -15,11 +15,12 @@ import java.util.Arrays;
 @Slf4j
 public class BranchAuditAspect {
 
-    @Before("""
-            execution(* com.elvencode.schoolba.school.branch.service.impl.BranchServiceImpl.saveBranchDetails(..))
-                    || execution(* com.elvencode.schoolba.school.branch.service.impl.BranchServiceImpl.patchBranchDetails(..))
-                    || execution(* com.elvencode.schoolba.school.branch.service.impl.BranchServiceImpl.deleteBranchByCode(..))
-            """)
+//    @Before("""
+//            execution(* com.elvencode.schoolba.school.branch.service.impl.BranchServiceImpl.saveBranchDetails(..))
+//                    || execution(* com.elvencode.schoolba.school.branch.service.impl.BranchServiceImpl.patchBranchDetails(..))
+//                    || execution(* com.elvencode.schoolba.school.branch.service.impl.BranchServiceImpl.deleteBranchByCode(..))
+//            """)
+    @Before("@annotation(com.elvencode.schoolba.common.aspects.LogMethodSignature)")
     public void auditBranchChange(JoinPoint joinPoint) {
         log.info(
                 "Branch change requested: method={}, args={}",

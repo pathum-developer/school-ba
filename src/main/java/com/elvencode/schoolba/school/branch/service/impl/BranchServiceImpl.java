@@ -3,6 +3,7 @@ package com.elvencode.schoolba.school.branch.service.impl;
 import java.util.List;
 import java.util.UUID;
 
+import com.elvencode.schoolba.common.aspects.LogMethodSignature;
 import com.elvencode.schoolba.common.exception.DuplicateResourceException;
 import com.elvencode.schoolba.common.exception.ResourceNotFoundException;
 import com.elvencode.schoolba.school.branch.dto.BranchDto;
@@ -37,6 +38,7 @@ public class BranchServiceImpl implements IBranchService {
 
     @Override
     @Transactional
+    @LogMethodSignature
     public BranchDto saveBranchDetails(UUID schoolId, SaveBranchDetailsRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("request must not be null");
