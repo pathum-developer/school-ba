@@ -112,6 +112,8 @@ public class BranchServiceImpl implements IBranchService {
         UUID requiredSchoolId = requireId(schoolId, "school id");
         String requiredBranchCode = normalizeCode(branchCode, "branch code");
 
+        // The main warning: this is a bulk delete, so JPA entity callbacks, orphanRemoval, and entity lifecycle events are bypassed.
+        //  In schema, child records use database-level ON DELETE CASCADE, so this is acceptable.
         int deletedRowCount = branchRepository.deleteBySchoolIdAndCode(requiredSchoolId, requiredBranchCode);
         if (deletedRowCount == 0) {
             throw branchNotFound(requiredSchoolId, requiredBranchCode);
