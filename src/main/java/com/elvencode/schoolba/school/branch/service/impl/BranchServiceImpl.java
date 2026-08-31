@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+// by default all the public methods  that have inside the class, they are going to derive these transactional configuration.
+// private methods are not considered
 @Transactional(readOnly = true)
 public class BranchServiceImpl implements IBranchService {
 
