@@ -81,14 +81,14 @@ class AuthControllerTest {
     void jwtTokenAuthenticatesSecuredApiRequest() throws Exception {
         String token = loginToken();
 
-        mockMvc.perform(get("/api/schools/getProfile")
+        mockMvc.perform(get("/api/schools/profile")
                         .header(ApplicationConstant.JWT_HEADER, ApplicationConstant.JWT_TOKEN_PREFIX + token))
                 .andExpect(status().isOk());
     }
 
     @Test
     void securedApiRequestRejectsInvalidJwtToken() throws Exception {
-        mockMvc.perform(get("/api/schools/getProfile")
+        mockMvc.perform(get("/api/schools/profile")
                         .header(ApplicationConstant.JWT_HEADER, ApplicationConstant.JWT_TOKEN_PREFIX + "invalid-token"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.errorMessage").value("Invalid token received"));
