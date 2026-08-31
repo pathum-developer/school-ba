@@ -18,8 +18,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.NamedQueries;
-import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -40,28 +38,12 @@ import org.hibernate.annotations.DynamicInsert;
                 columnNames = {"school_id", "code"}
         )
 )
-@NamedQueries({
-        @NamedQuery(
-                name = Branch.FIND_DETAILED_BY_SCHOOL_ID_AND_CODE,
-                query = """
-                        select distinct branch
-                        from Branch branch
-                        join fetch branch.school school
-                        left join fetch branch.contactNoList
-                        where school.id = :schoolId
-                                and branch.code = :code
-                        """
-        )
-})
 @DynamicInsert
 @Getter
 @Setter
 @NoArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 public class Branch extends BaseEntity {
-
-    public static final String FIND_DETAILED_BY_SCHOOL_ID_AND_CODE =
-            "Branch.findDetailedBySchoolIdAndCode";
 
     private static final int CODE_MAX_LENGTH = 64;
     private static final int NAME_MAX_LENGTH = 160;

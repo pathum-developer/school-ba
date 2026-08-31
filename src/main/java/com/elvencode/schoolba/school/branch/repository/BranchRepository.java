@@ -18,7 +18,14 @@ public interface BranchRepository extends JpaRepository<Branch, UUID> {
 
     Optional<Branch> findBySchool_IdAndCode(UUID schoolId, String code);
 
-    @Query(name = Branch.FIND_DETAILED_BY_SCHOOL_ID_AND_CODE)
+    @Query("""
+            select distinct branch
+            from Branch branch
+            join fetch branch.school school
+            left join fetch branch.contactNoList
+            where school.id = :schoolId
+                    and branch.code = :code
+            """)
     Optional<Branch> findDetailedBySchool_IdAndCode(
             @Param("schoolId") UUID schoolId,
             @Param("code") String code
