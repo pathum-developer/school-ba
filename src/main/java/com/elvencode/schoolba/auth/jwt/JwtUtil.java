@@ -1,6 +1,7 @@
 package com.elvencode.schoolba.auth.jwt;
 
 import com.elvencode.schoolba.common.constants.ApplicationConstant;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.core.env.Environment;
@@ -28,11 +29,6 @@ public class JwtUtil {
     }
 
     public String generateJwtToken(Authentication authentication) {
-        String secret = env.getProperty(
-                ApplicationConstant.JWT_SECRET_KEY,
-                ApplicationConstant.JWT_SECRET_DEFAULT_VALUE
-        );
-        SecretKey secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         Date issuedAt = new Date();
         Date expiration = new Date(issuedAt.getTime() + JWT_EXPIRATION_MILLIS);
 
@@ -43,8 +39,16 @@ public class JwtUtil {
                 .claim("roles", roleList(authentication))
                 .issuedAt(issuedAt)
                 .expiration(expiration)
-                .signWith(secretKey)
+                .signWith(secretKey())
                 .compact();
+    }
+
+    public Claims parseJwtToken(String jwt) {
+        return Jwts.parser()
+                .verifyWith(secretKey())
+                .build()
+                .parseSignedClaims(jwt)
+                .getPayload();
     }
 
     private List<String> roleList(Authentication authentication) {
@@ -54,5 +58,13 @@ public class JwtUtil {
                 .filter(authority -> authority.startsWith(ROLE_PREFIX))
                 .map(authority -> authority.substring(ROLE_PREFIX.length()))
                 .toList();
+    }
+
+    private SecretKey secretKey() {
+        String secret = env.getProperty(
+                ApplicationConstant.JWT_SECRET_KEY,
+                ApplicationConstant.JWT_SECRET_DEFAULT_VALUE
+        );
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 }

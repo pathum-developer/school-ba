@@ -1,5 +1,6 @@
 package com.elvencode.schoolba.config.security;
 
+import com.elvencode.schoolba.config.security.filter.JwtTokenValidatorFilter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -43,9 +45,11 @@ public class SchoolSecurityConfig {
 
     @Bean
     SecurityFilterChain customSecurityFilterChain(HttpSecurity http,
-                                                  CorsConfigurationSource corsConfigurationSource) throws Exception {
+                                                  CorsConfigurationSource corsConfigurationSource,
+                                                  JwtTokenValidatorFilter jwtTokenValidatorFilter) throws Exception {
         return http.csrf(csrfConfigurer -> csrfConfigurer.disable())
                 .cors(corsConfigurer -> corsConfigurer.configurationSource(corsConfigurationSource))
+                .addFilterBefore(jwtTokenValidatorFilter, BasicAuthenticationFilter.class)
                 .authorizeHttpRequests(requests -> {
                     publicPathList.forEach(path -> requests.requestMatchers(path).permitAll());
                     securedPathList.forEach(path -> requests.requestMatchers(path).authenticated());

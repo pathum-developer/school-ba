@@ -21,6 +21,7 @@ import java.util.List;
 import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -76,6 +77,23 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.errorMessage").value("Invalid username or password"));
     }
 
+    @Test
+    void jwtTokenAuthenticatesSecuredApiRequest() throws Exception {
+        String token = loginToken();
+
+        mockMvc.perform(get("/api/schools/getProfile")
+                        .header(ApplicationConstant.JWT_HEADER, ApplicationConstant.JWT_TOKEN_PREFIX + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void securedApiRequestRejectsInvalidJwtToken() throws Exception {
+        mockMvc.perform(get("/api/schools/getProfile")
+                        .header(ApplicationConstant.JWT_HEADER, ApplicationConstant.JWT_TOKEN_PREFIX + "invalid-token"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorMessage").value("Invalid token received"));
+    }
+
     private Claims parseClaims(String token) {
         String secret = env.getProperty(
                 ApplicationConstant.JWT_SECRET_KEY,
@@ -88,5 +106,20 @@ class AuthControllerTest {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    private String loginToken() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/login/public")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "ElvenUser",
+                                  "password": "ElvenPassword"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return JsonPath.read(result.getResponse().getContentAsString(), "$.token");
     }
 }

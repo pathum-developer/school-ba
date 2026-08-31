@@ -15,7 +15,7 @@ public class PathsConfig {
                 "/api/v3/api-docs/**",
                 "/api/login/public",
                 "/swagger-resources/**",
-                "/swagger-ui.html",
+                "/api/swagger-ui.html",
                 "/webjars/**"
         );
     }
