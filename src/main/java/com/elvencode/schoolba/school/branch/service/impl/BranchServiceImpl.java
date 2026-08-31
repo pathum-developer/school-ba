@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.elvencode.schoolba.common.aspects.LogMethodSignature;
+import com.elvencode.schoolba.common.constants.CacheConstant;
 import com.elvencode.schoolba.common.exception.DuplicateResourceException;
 import com.elvencode.schoolba.common.exception.ResourceNotFoundException;
 import com.elvencode.schoolba.school.branch.dto.BranchDto;
@@ -15,6 +16,8 @@ import com.elvencode.schoolba.school.branch.repository.BranchRepository;
 import com.elvencode.schoolba.school.branch.service.IBranchService;
 import com.elvencode.schoolba.school.entity.School;
 import com.elvencode.schoolba.school.repository.SchoolRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +41,7 @@ public class BranchServiceImpl implements IBranchService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = CacheConstant.ACTIVE_BRANCHES_BY_SCHOOL_ID, key = "#schoolId")
     @LogMethodSignature
     public BranchDto saveBranchDetails(UUID schoolId, SaveBranchDetailsRequest request) {
         if (request == null) {
@@ -62,6 +66,7 @@ public class BranchServiceImpl implements IBranchService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = CacheConstant.ACTIVE_BRANCHES_BY_SCHOOL_ID, key = "#schoolId")
     public BranchDto patchBranchDetails(UUID schoolId, String branchCode, PatchBranchDetailsRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("request must not be null");
@@ -92,6 +97,7 @@ public class BranchServiceImpl implements IBranchService {
     }
 
     @Override
+    @Cacheable(cacheNames = CacheConstant.ACTIVE_BRANCHES_BY_SCHOOL_ID, key = "#schoolId", sync = true)
     public List<BranchDto> findActiveBranchesBySchoolId(UUID schoolId) {
         UUID requiredSchoolId = requireId(schoolId, "school id");
         List<Branch> branchList = branchRepository
@@ -106,6 +112,7 @@ public class BranchServiceImpl implements IBranchService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = CacheConstant.ACTIVE_BRANCHES_BY_SCHOOL_ID, key = "#schoolId")
     public void deleteBranchByCode(UUID schoolId, String branchCode) {
         UUID requiredSchoolId = requireId(schoolId, "school id");
         String requiredBranchCode = normalizeCode(branchCode, "branch code");
