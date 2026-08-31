@@ -55,7 +55,7 @@
     <!-- Application-specific ERROR logs -->
     <!-- ===================== -->
     <logger name="com.elvencode.schoolba"
-            level="ERROR"
+            level="INFO"
             additivity="false">
         <appender-ref ref="RollingFile"/>
         <appender-ref ref="Console"/>
