@@ -31,6 +31,21 @@ public interface BranchRepository extends JpaRepository<Branch, UUID> {
             @Param("code") String code
     );
 
+    @Query(
+            value = """
+                    select branch.*
+                    from branch branch
+                    join school school on school.id = branch.school_id
+                    where school.id = :schoolId
+                            and branch.code = :code
+                    """,
+            nativeQuery = true
+    )
+    Optional<Branch> findDetailedBySchool_IdAndCodeUsingNativeQuery(
+            @Param("schoolId") UUID schoolId,
+            @Param("code") String code
+    );
+
     boolean existsBySchool_IdAndCode(UUID schoolId, String code);
 
     @EntityGraph(attributePaths = {"school", "contactNoList"})
