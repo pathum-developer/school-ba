@@ -3,6 +3,7 @@ package com.elvencode.schoolba.school.branch.aspects;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
+import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.springframework.stereotype.Component;
@@ -35,6 +36,24 @@ public class BranchAuditAspect {
                 "Branch delete completed: method={}, args={}",
                 joinPoint.getSignature().toShortString(),
                 Arrays.toString(joinPoint.getArgs())
+        );
+    }
+
+    @AfterThrowing(
+            pointcut = """
+                    execution(* com.elvencode.schoolba.school.branch.service.impl.BranchServiceImpl.saveBranchDetails(..))
+                            || execution(* com.elvencode.schoolba.school.branch.service.impl.BranchServiceImpl.patchBranchDetails(..))
+                            || execution(* com.elvencode.schoolba.school.branch.service.impl.BranchServiceImpl.deleteBranchByCode(..))
+                    """,
+            throwing = "exception"
+    )
+    public void auditFailedBranchChange(JoinPoint joinPoint, Exception exception) {
+        log.error(
+                "Branch change failed: method={}, args={}, exceptionType={}, message={}",
+                joinPoint.getSignature().toShortString(),
+                Arrays.toString(joinPoint.getArgs()),
+                exception.getClass().getSimpleName(),
+                exception.getMessage()
         );
     }
 }
