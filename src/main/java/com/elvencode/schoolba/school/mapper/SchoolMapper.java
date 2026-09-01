@@ -16,7 +16,7 @@ public class SchoolMapper {
                 school.getHotlineHref(),
                 school.getWhatsappHref(),
                 school.getEmail(),
-                school.getSingletonKey()
+                school.getTenantStatus()
         );
     }
 }

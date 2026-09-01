@@ -6,7 +6,8 @@ INSERT INTO school (
     established_year,
     hotline_href,
     whatsapp_href,
-    email
+    email,
+    tenant_status
 )
 VALUES (
     '20000000-0000-0000-0000-000000000001',
@@ -16,7 +17,8 @@ VALUES (
     1950,
     'tel:+94771234567',
     'https://wa.me/94771234567',
-    'hello@elvendriving.lk'
+    'hello@elvendriving.lk',
+    'ACTIVE'
 )
 ON CONFLICT (code) DO UPDATE
 SET name = EXCLUDED.name,
@@ -25,6 +27,7 @@ SET name = EXCLUDED.name,
     hotline_href = EXCLUDED.hotline_href,
     whatsapp_href = EXCLUDED.whatsapp_href,
     email = EXCLUDED.email,
+    tenant_status = EXCLUDED.tenant_status,
     updated_at = now();
 
 INSERT INTO school_contact_number (

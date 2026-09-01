@@ -3,8 +3,11 @@ package com.elvencode.schoolba.school.entity;
 import java.util.UUID;
 
 import com.elvencode.schoolba.audit.entity.BaseEntity;
+import com.elvencode.schoolba.school.enums.TenantStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -45,7 +48,8 @@ public class School extends BaseEntity {
     @Column(nullable = false, length = 254)
     private String email;
 
-    @Column(name = "singleton_key", nullable = false, unique = true)
-    private Boolean singletonKey;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tenant_status", nullable = false, length = 32)
+    private TenantStatus tenantStatus = TenantStatus.ACTIVE;
 
 }

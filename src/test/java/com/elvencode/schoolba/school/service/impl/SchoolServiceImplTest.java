@@ -3,6 +3,7 @@ package com.elvencode.schoolba.school.service.impl;
 import com.elvencode.schoolba.common.exception.ResourceNotFoundException;
 import com.elvencode.schoolba.school.dto.SchoolProfileDto;
 import com.elvencode.schoolba.school.entity.School;
+import com.elvencode.schoolba.school.enums.TenantStatus;
 import com.elvencode.schoolba.school.mapper.SchoolMapper;
 import com.elvencode.schoolba.school.repository.SchoolRepository;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,7 @@ class SchoolServiceImplTest {
                 "tel:+94770000000",
                 "https://wa.me/94770000000",
                 "hello@elvendriving.lk",
-                true
+                TenantStatus.ACTIVE
         );
 
         when(schoolRepository.findByCode(SCHOOL_PROFILE_CODE)).thenReturn(Optional.of(school));

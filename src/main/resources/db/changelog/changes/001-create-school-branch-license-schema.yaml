@@ -909,3 +909,19 @@ databaseChangeLog:
 
               ALTER TABLE branch_license_class ALTER COLUMN created_at TYPE timestamp USING created_at AT TIME ZONE 'UTC';
               ALTER TABLE branch_license_class ALTER COLUMN updated_at TYPE timestamp USING updated_at AT TIME ZONE 'UTC';
+
+  - changeSet:
+      id: 019-make-school-multi-tenant-root
+      author: codex
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              ALTER TABLE school DROP CONSTRAINT IF EXISTS ck_school_singleton_key_true;
+              ALTER TABLE school DROP CONSTRAINT IF EXISTS uk_school_singleton;
+              ALTER TABLE school DROP COLUMN IF EXISTS singleton_key;
+
+              ALTER TABLE school ADD COLUMN tenant_status varchar(32) DEFAULT 'ACTIVE' NOT NULL;
+              ALTER TABLE school ADD CONSTRAINT ck_school_tenant_status
+                  CHECK (tenant_status IN ('ACTIVE', 'SUSPENDED', 'ARCHIVED'));
