@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.elvencode.schoolba.common.aspects.LogMethodSignature;
+import com.elvencode.schoolba.common.constants.CacheConstant;
 import com.elvencode.schoolba.common.exception.DuplicateResourceException;
 import com.elvencode.schoolba.common.exception.ResourceNotFoundException;
 import com.elvencode.schoolba.school.branch.dto.BranchDto;
@@ -15,10 +16,14 @@ import com.elvencode.schoolba.school.branch.repository.BranchRepository;
 import com.elvencode.schoolba.school.branch.service.IBranchService;
 import com.elvencode.schoolba.school.entity.School;
 import com.elvencode.schoolba.school.repository.SchoolRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+// by default all the public methods  that have inside the class, they are going to derive these transactional configuration.
+// private methods are not considered
 @Transactional(readOnly = true)
 public class BranchServiceImpl implements IBranchService {
 
@@ -38,6 +43,7 @@ public class BranchServiceImpl implements IBranchService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = CacheConstant.ACTIVE_BRANCHES_BY_SCHOOL_ID, key = "#schoolId")
     @LogMethodSignature
     public BranchDto saveBranchDetails(UUID schoolId, SaveBranchDetailsRequest request) {
         if (request == null) {
@@ -62,6 +68,7 @@ public class BranchServiceImpl implements IBranchService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = CacheConstant.ACTIVE_BRANCHES_BY_SCHOOL_ID, key = "#schoolId")
     public BranchDto patchBranchDetails(UUID schoolId, String branchCode, PatchBranchDetailsRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("request must not be null");
@@ -81,6 +88,18 @@ public class BranchServiceImpl implements IBranchService {
     }
 
     @Override
+    public BranchDto findBranchDetailsByCode(UUID schoolId, String branchCode) {
+        UUID requiredSchoolId = requireId(schoolId, "school id");
+        String requiredBranchCode = normalizeCode(branchCode, "branch code");
+
+        Branch branch = branchRepository.findDetailedBySchool_IdAndCode(requiredSchoolId, requiredBranchCode)
+                .orElseThrow(() -> branchNotFound(requiredSchoolId, requiredBranchCode));
+
+        return branchMapper.toBranchDto(branch);
+    }
+
+    @Override
+    @Cacheable(cacheNames = CacheConstant.ACTIVE_BRANCHES_BY_SCHOOL_ID, key = "#schoolId", sync = true)
     public List<BranchDto> findActiveBranchesBySchoolId(UUID schoolId) {
         UUID requiredSchoolId = requireId(schoolId, "school id");
         List<Branch> branchList = branchRepository
@@ -95,14 +114,17 @@ public class BranchServiceImpl implements IBranchService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = CacheConstant.ACTIVE_BRANCHES_BY_SCHOOL_ID, key = "#schoolId")
     public void deleteBranchByCode(UUID schoolId, String branchCode) {
         UUID requiredSchoolId = requireId(schoolId, "school id");
         String requiredBranchCode = normalizeCode(branchCode, "branch code");
 
-        Branch branch = branchRepository.findBySchool_IdAndCode(requiredSchoolId, requiredBranchCode)
-                .orElseThrow(() -> branchNotFound(requiredSchoolId, requiredBranchCode));
-
-        branchRepository.delete(branch);
+        // The main warning: this is a bulk delete, so JPA entity callbacks, orphanRemoval, and entity lifecycle events are bypassed.
+        //  In schema, child records use database-level ON DELETE CASCADE, so this is acceptable.
+        int deletedRowCount = branchRepository.deleteBySchoolIdAndCode(requiredSchoolId, requiredBranchCode);
+        if (deletedRowCount == 0) {
+            throw branchNotFound(requiredSchoolId, requiredBranchCode);
+        }
     }
 
     private School findSchool(UUID schoolId) {

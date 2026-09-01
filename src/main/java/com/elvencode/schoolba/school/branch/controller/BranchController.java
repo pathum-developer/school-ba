@@ -43,6 +43,16 @@ public class BranchController {
         return ResponseEntity.ok(branchService.findActiveBranchesBySchoolId(schoolId));
     }
 
+    @GetMapping(value = "/{branchCode}", version = API_VERSION_1_BASELINE)
+    public ResponseEntity<BranchDto> findBranchDetailsByCode(
+            @PathVariable UUID schoolId,
+            @PathVariable
+            @Pattern(regexp = BRANCH_CODE_REGEXP, message = BRANCH_CODE_MESSAGE)
+            String branchCode
+    ) {
+        return ResponseEntity.ok(branchService.findBranchDetailsByCode(schoolId, branchCode));
+    }
+
     @PostMapping(version = API_VERSION_1_BASELINE)
     public ResponseEntity<BranchDto> saveBranchDetails(
             @PathVariable UUID schoolId,
