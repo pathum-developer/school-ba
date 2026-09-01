@@ -81,4 +81,33 @@ class BranchServiceImplTest {
                 exception.getMessage()
         );
     }
+
+    @Test
+    void deleteBranchByCodeDeletesExistingBranch() {
+        BranchServiceImpl branchService = new BranchServiceImpl(branchRepository, schoolRepository, branchMapper);
+
+        when(branchRepository.deleteBySchoolIdAndCode(SCHOOL_ID, BRANCH_CODE)).thenReturn(1);
+
+        branchService.deleteBranchByCode(SCHOOL_ID, BRANCH_CODE);
+
+        verify(branchRepository).deleteBySchoolIdAndCode(SCHOOL_ID, BRANCH_CODE);
+    }
+
+    @Test
+    void deleteBranchByCodeThrowsWhenBranchDoesNotExist() {
+        BranchServiceImpl branchService = new BranchServiceImpl(branchRepository, schoolRepository, branchMapper);
+
+        when(branchRepository.deleteBySchoolIdAndCode(SCHOOL_ID, BRANCH_CODE)).thenReturn(0);
+        when(schoolRepository.existsById(SCHOOL_ID)).thenReturn(true);
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> branchService.deleteBranchByCode(SCHOOL_ID, BRANCH_CODE)
+        );
+
+        assertEquals(
+                "Branch not found with code: " + BRANCH_CODE + " for school id: " + SCHOOL_ID,
+                exception.getMessage()
+        );
+    }
 }

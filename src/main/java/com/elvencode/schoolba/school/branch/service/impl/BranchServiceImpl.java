@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+// by default all the public methods  that have inside the class, they are going to derive these transactional configuration.
+// private methods are not considered
 @Transactional(readOnly = true)
 public class BranchServiceImpl implements IBranchService {
 
@@ -117,10 +119,12 @@ public class BranchServiceImpl implements IBranchService {
         UUID requiredSchoolId = requireId(schoolId, "school id");
         String requiredBranchCode = normalizeCode(branchCode, "branch code");
 
-        Branch branch = branchRepository.findBySchool_IdAndCode(requiredSchoolId, requiredBranchCode)
-                .orElseThrow(() -> branchNotFound(requiredSchoolId, requiredBranchCode));
-
-        branchRepository.delete(branch);
+        // The main warning: this is a bulk delete, so JPA entity callbacks, orphanRemoval, and entity lifecycle events are bypassed.
+        //  In schema, child records use database-level ON DELETE CASCADE, so this is acceptable.
+        int deletedRowCount = branchRepository.deleteBySchoolIdAndCode(requiredSchoolId, requiredBranchCode);
+        if (deletedRowCount == 0) {
+            throw branchNotFound(requiredSchoolId, requiredBranchCode);
+        }
     }
 
     private School findSchool(UUID schoolId) {

@@ -7,6 +7,7 @@ import java.util.UUID;
 import com.elvencode.schoolba.school.branch.entity.Branch;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -47,6 +48,17 @@ public interface BranchRepository extends JpaRepository<Branch, UUID> {
     );
 
     boolean existsBySchool_IdAndCode(UUID schoolId, String code);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            delete from Branch branch
+            where branch.school.id = :schoolId
+                    and branch.code = :code
+            """)
+    int deleteBySchoolIdAndCode(
+            @Param("schoolId") UUID schoolId,
+            @Param("code") String code
+    );
 
     @EntityGraph(attributePaths = {"school", "contactNoList"})
     List<Branch> findAllBySchool_IdAndActiveTrueOrderByHeadOfficeDescNameAsc(UUID schoolId);
