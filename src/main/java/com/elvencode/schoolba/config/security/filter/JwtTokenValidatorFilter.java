@@ -26,9 +26,6 @@ import java.util.List;
 @Component
 public class JwtTokenValidatorFilter extends OncePerRequestFilter {
 
-    private static final String ROLE_PREFIX = "ROLE_";
-    private static final String USERNAME_CLAIM = "username";
-    private static final String ROLES_CLAIM = "roles";
     private static final String TOKEN_EXPIRED_MESSAGE = "Token expired";
     private static final String INVALID_TOKEN_MESSAGE = "Invalid token received";
 
@@ -63,7 +60,7 @@ public class JwtTokenValidatorFilter extends OncePerRequestFilter {
             String jwt = authHeader.substring(ApplicationConstant.JWT_TOKEN_PREFIX.length());
             Claims claims = jwtUtil.parseJwtToken(jwt);
             Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    claims.get(USERNAME_CLAIM, String.class),
+                    claims.get(ApplicationConstant.JWT_USERNAME_CLAIM, String.class),
                     null,
                     authorityList(claims)
             );
@@ -78,24 +75,23 @@ public class JwtTokenValidatorFilter extends OncePerRequestFilter {
         }
     }
 
+    /**
+     * Rebuilds the authorities exactly as they were written, adding no prefix of its own.
+     *
+     * <p>The authorities this application issues are permission codes such as {@code branch:read}.
+     * Prefixing them with {@code ROLE_} here, as an earlier version did, produced authorities that
+     * matched nothing a {@code @PreAuthorize} check would ever ask for.
+     */
     private List<SimpleGrantedAuthority> authorityList(Claims claims) {
-        List<?> roleList = claims.get(ROLES_CLAIM, List.class);
-        if (roleList == null) {
+        List<?> authorityList = claims.get(ApplicationConstant.JWT_AUTHORITIES_CLAIM, List.class);
+        if (authorityList == null) {
             return List.of();
         }
 
-        return roleList.stream()
+        return authorityList.stream()
                 .map(String::valueOf)
-                .map(this::authority)
                 .map(SimpleGrantedAuthority::new)
                 .toList();
-    }
-
-    private String authority(String role) {
-        if (role.startsWith(ROLE_PREFIX)) {
-            return role;
-        }
-        return ROLE_PREFIX + role;
     }
 
     private void writeUnauthorizedResponse(HttpServletRequest request,

@@ -7,14 +7,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -75,43 +71,24 @@ public class SchoolSecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
-        var user = User.builder()
-                .username("ElvenUser")
-                .password(passwordEncoder.encode("ElvenPassword"))
-                .roles("USER")
-                .build();
-
-        var admin = User.builder()
-                .username("ElvenAdminUser")
-                .password(passwordEncoder.encode("ElvenAdminPassword"))
-                .roles("ADMIN")
-                .build();
-
-        return new InMemoryUserDetailsManager(user, admin);
-    }
-
-    @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     /**
-     * Real accounts are tried first, and the in-memory pair only if no identity row matched.
-     * {@code ProviderManager} stops the chain on an {@code AccountStatusException}, so a
-     * suspended or locked account is refused outright rather than being offered to the
-     * fallback provider.
+     * Resolves every login against m_identity through {@link SchoolIdentityAuthenticationProvider}.
      *
-     * <p>The in-memory provider is transitional. It exists only to keep the seeded demo
-     * logins working and should be dropped once every caller signs in against m_identity.
+     * <p>Deliberately the only provider in the chain. An in-memory pair sat beside it while the
+     * database-backed flow was being built, and keeping it would leave two sources of truth for
+     * who may sign in, one of them a password committed to this repository.
+     *
+     * <p>No {@code UserDetailsService} bean is declared for the same reason. Spring Security would
+     * wrap one in a {@code DaoAuthenticationProvider} for the global {@code AuthenticationManager},
+     * then log that it is being ignored because a provider bean already configures that manager.
      */
     @Bean
     public AuthenticationManager authenticationManager(
-            SchoolIdentityAuthenticationProvider schoolIdentityAuthenticationProvider,
-            UserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder) {
-        DaoAuthenticationProvider inMemoryAuthenticationProvider = new DaoAuthenticationProvider(userDetailsService);
-        inMemoryAuthenticationProvider.setPasswordEncoder(passwordEncoder);
-        return new ProviderManager(schoolIdentityAuthenticationProvider, inMemoryAuthenticationProvider);
+            SchoolIdentityAuthenticationProvider schoolIdentityAuthenticationProvider) {
+        return new ProviderManager(schoolIdentityAuthenticationProvider);
     }
 }

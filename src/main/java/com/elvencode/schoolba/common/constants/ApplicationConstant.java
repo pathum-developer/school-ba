@@ -11,4 +11,8 @@ public class ApplicationConstant {
     public static final String JWT_SECRET_KEY = "JWT_SECRET";
     public static final String JWT_SECRET_DEFAULT_VALUE = "jxgEQeXHuPq8VdbySUGOVVWudQ53YUn4";
 
+    /** Claim names, shared so the token writer and the token reader cannot drift apart. */
+    public static final String JWT_USERNAME_CLAIM = "username";
+    public static final String JWT_AUTHORITIES_CLAIM = "authorities";
+
 }

@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.not;
@@ -26,9 +27,36 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Signs in against m_identity, so it needs a database carrying the demo seed.
+ *
+ * <p>The context is deliberately not overridden to reference,demo here. Changeset 029 inserts
+ * into m_app_user and changeset 030 renames that table to m_identity, so the seed applies only
+ * while it runs ahead of the rename, on a database built in a single pass. Turning demo on for
+ * an existing reference-only database makes 029 fail on a table that no longer exists.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 class AuthControllerTest {
+
+    /**
+     * The bootstrap administrator seeded by changeset 029, which runs in the demo context.
+     */
+    private static final String USERNAME = "elven_super";
+    private static final String PASSWORD = "ElvenSuper@123";
+
+    /**
+     * Every permission the school super admin role carries, as seeded. Asserted in full so that
+     * changing what the bootstrap role grants has to be an explicit decision here as well.
+     */
+    private static final Set<String> EXPECTED_AUTHORITY_SET = Set.of(
+            "branch-license-class:manage",
+            "branch:create",
+            "branch:manage-status",
+            "branch:read",
+            "branch:update",
+            "staff:read"
+    );
 
     private final MockMvc mockMvc;
     private final Environment env;
@@ -43,15 +71,10 @@ class AuthControllerTest {
     void apiLoginReturnsJwtTokenWithAuthenticatedUserClaims() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/login/public")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "username": "ElvenUser",
-                                  "password": "ElvenPassword"
-                                }
-                                """))
+                        .content(loginBody(USERNAME, PASSWORD)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("OK"))
-                .andExpect(jsonPath("$.user.username").value("ElvenUser"))
+                .andExpect(jsonPath("$.user.username").value(USERNAME))
                 .andExpect(jsonPath("$.user.roleList").doesNotExist())
                 .andExpect(jsonPath("$.token").value(not(emptyString())))
                 .andReturn();
@@ -59,20 +82,18 @@ class AuthControllerTest {
         String token = JsonPath.read(result.getResponse().getContentAsString(), "$.token");
         Claims claims = parseClaims(token);
 
-        assertEquals("ElvenUser", claims.get("username", String.class));
-        assertEquals(List.of("USER"), claims.get("roles", List.class));
+        assertEquals(USERNAME, claims.get(ApplicationConstant.JWT_USERNAME_CLAIM, String.class));
+        assertEquals(
+                EXPECTED_AUTHORITY_SET,
+                Set.copyOf(claims.get(ApplicationConstant.JWT_AUTHORITIES_CLAIM, List.class))
+        );
     }
 
     @Test
     void apiLoginRejectsInvalidCredentials() throws Exception {
         mockMvc.perform(post("/api/login/public")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "username": "ElvenUser",
-                                  "password": "wrong-password"
-                                }
-                                """))
+                        .content(loginBody(USERNAME, "wrong-password")))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.errorMessage").value("Invalid username or password"));
     }
@@ -94,6 +115,15 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.errorMessage").value("Invalid token received"));
     }
 
+    private String loginBody(String username, String password) {
+        return """
+                {
+                  "username": "%s",
+                  "password": "%s"
+                }
+                """.formatted(username, password);
+    }
+
     private Claims parseClaims(String token) {
         String secret = env.getProperty(
                 ApplicationConstant.JWT_SECRET_KEY,
@@ -111,12 +141,7 @@ class AuthControllerTest {
     private String loginToken() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/login/public")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "username": "ElvenUser",
-                                  "password": "ElvenPassword"
-                                }
-                                """))
+                        .content(loginBody(USERNAME, PASSWORD)))
                 .andExpect(status().isOk())
                 .andReturn();
 

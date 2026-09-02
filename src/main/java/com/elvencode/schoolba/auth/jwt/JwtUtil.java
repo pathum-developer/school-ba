@@ -17,7 +17,6 @@ import java.util.List;
 @Component
 public class JwtUtil {
 
-    private static final String ROLE_PREFIX = "ROLE_";
     private static final String JWT_ISSUER = "School Portal";
     private static final String JWT_SUBJECT = "JWT Token";
     private static final long JWT_EXPIRATION_MILLIS = 24 * 60 * 60 * 1000L;
@@ -35,8 +34,8 @@ public class JwtUtil {
         return Jwts.builder()
                 .issuer(JWT_ISSUER)
                 .subject(JWT_SUBJECT)
-                .claim("username", authentication.getName())
-                .claim("roles", roleList(authentication))
+                .claim(ApplicationConstant.JWT_USERNAME_CLAIM, authentication.getName())
+                .claim(ApplicationConstant.JWT_AUTHORITIES_CLAIM, authorityList(authentication))
                 .issuedAt(issuedAt)
                 .expiration(expiration)
                 .signWith(secretKey())
@@ -51,12 +50,18 @@ public class JwtUtil {
                 .getPayload();
     }
 
-    private List<String> roleList(Authentication authentication) {
+    /**
+     * Every authority the account holds, written out verbatim.
+     *
+     * <p>These are permission codes such as {@code branch:read}, not {@code ROLE_} names. An
+     * earlier version kept only {@code ROLE_}-prefixed authorities and stripped that prefix, which
+     * emptied the claim outright once logins began resolving against m_identity, so every request
+     * carrying a token was rebuilt with no authority at all.
+     */
+    private List<String> authorityList(Authentication authentication) {
         return authentication.getAuthorities()
                 .stream()
                 .map(GrantedAuthority::getAuthority)
-                .filter(authority -> authority.startsWith(ROLE_PREFIX))
-                .map(authority -> authority.substring(ROLE_PREFIX.length()))
                 .toList();
     }
 
