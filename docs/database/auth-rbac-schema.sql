@@ -24,9 +24,13 @@
 --
 -- Apply order:
 --   1. src/main/resources/db-data/school-schema.sql   school, branch
---   2. docs/database/learner-schema.sql               learner
---   3. docs/database/staff-schema.sql                 staff
---   4. this file
+--   2. docs/database/platform-schema.sql              platform_operator
+--   3. docs/database/learner-schema.sql               learner
+--   4. docs/database/staff-schema.sql                 staff
+--   5. this file
+--
+-- Every login points at exactly one of those three person records. app_user itself
+-- holds credentials and account state; who the person is lives in their own table.
 --
 -- Reference document. The runtime schema is applied by Liquibase under
 -- src/main/resources/db/changelog; keep this file aligned when that changes.
@@ -44,6 +48,9 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'staff' AND relkind = 'r') THEN
         RAISE EXCEPTION 'apply docs/database/staff-schema.sql first: app_user references staff';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'platform_operator' AND relkind = 'r') THEN
+        RAISE EXCEPTION 'apply docs/database/platform-schema.sql first: app_user references platform_operator';
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uk_learner_id_school') THEN
         RAISE EXCEPTION 'learner must declare UNIQUE (id, school_id) as uk_learner_id_school';
@@ -66,6 +73,7 @@ $$;
 CREATE TABLE IF NOT EXISTS app_user (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     school_id uuid,                                       -- NULL only for a platform operator
+    platform_operator_id uuid,                            -- set only for a platform login
     staff_id uuid,                                        -- set only for a staff login
     learner_id uuid,                                      -- set only for a learner login
     -- "not a learner", which is what the role audience rule turns on. Platform
@@ -91,6 +99,8 @@ CREATE TABLE IF NOT EXISTS app_user (
     -- The linked person must belong to the same school as the login.
     CONSTRAINT fk_app_user_learner FOREIGN KEY (learner_id, school_id) REFERENCES learner (id, school_id) ON DELETE RESTRICT,
     CONSTRAINT fk_app_user_staff FOREIGN KEY (staff_id, school_id) REFERENCES staff (id, school_id) ON DELETE RESTRICT,
+    -- No school pairing here: an operator belongs to no school by definition.
+    CONSTRAINT fk_app_user_platform_operator FOREIGN KEY (platform_operator_id) REFERENCES platform_operator (id) ON DELETE RESTRICT,
     -- Composite FK target. Lets staff_branch_membership prove that the user and the
     -- branch belong to the same school. Platform users (school_id NULL) fall out of
     -- that check under MATCH SIMPLE, which is why they can never join a branch.
@@ -105,6 +115,7 @@ CREATE TABLE IF NOT EXISTS app_user (
     -- number of rows share NULL while a given person can be claimed only once.
     CONSTRAINT uk_app_user_learner UNIQUE (learner_id),
     CONSTRAINT uk_app_user_staff UNIQUE (staff_id),
+    CONSTRAINT uk_app_user_platform_operator UNIQUE (platform_operator_id),
     -- Global, because it is what makes a single login endpoint possible: the sign-in
     -- request carries a username and nothing else, so it must resolve on its own.
     -- A learner username embeds the school code and is therefore collision-free by
@@ -117,11 +128,19 @@ CREATE TABLE IF NOT EXISTS app_user (
     -- Access is issued with no password and activated later, but an account must
     -- never be able to reach ACTIVE without one.
     CONSTRAINT ck_app_user_active_needs_password CHECK (status <> 'ACTIVE' OR password_hash IS NOT NULL),
-    -- A platform operator has no school, so it can be neither a learner nor staff.
+    -- A school person needs a school; an operator must not have one. Together these
+    -- make the account kind and the tenancy agree in both directions.
     CONSTRAINT ck_app_user_learner_needs_school CHECK (learner_id IS NULL OR school_id IS NOT NULL),
     CONSTRAINT ck_app_user_staff_needs_school CHECK (staff_id IS NULL OR school_id IS NOT NULL),
-    -- A login belongs to a staff member or to a learner, never to both.
-    CONSTRAINT ck_app_user_single_person CHECK (staff_id IS NULL OR learner_id IS NULL),
+    CONSTRAINT ck_app_user_operator_has_no_school CHECK (platform_operator_id IS NULL OR school_id IS NULL),
+    -- Exactly one person record, never two and never none. Without the second half a
+    -- login could belong to nobody, which is an account no one owns and no one
+    -- offboards.
+    CONSTRAINT ck_app_user_single_person CHECK (
+        (platform_operator_id IS NOT NULL)::int
+        + (staff_id IS NOT NULL)::int
+        + (learner_id IS NOT NULL)::int = 1
+    ),
     CONSTRAINT ck_app_user_display_name_not_blank CHECK (btrim(display_name) <> ''),
     CONSTRAINT ck_app_user_authorization_version_non_negative CHECK (authorization_version >= 0),
     CONSTRAINT ck_app_user_failed_attempt_count_non_negative CHECK (failed_attempt_count >= 0),
@@ -523,6 +542,22 @@ BEGIN
 END
 $$;
 
+-- And the same for platform operators, where it matters most of all: an operator
+-- who has left keeps cross-school reach until someone remembers to revoke it.
+CREATE OR REPLACE FUNCTION auth_disable_login_for_inactive_operator()
+    RETURNS trigger
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE app_user
+    SET status = 'DISABLED',
+        authorization_version = authorization_version + 1
+    WHERE platform_operator_id IN (SELECT id FROM new_row WHERE employment_status NOT IN ('ACTIVE', 'ON_LEAVE'))
+      AND status <> 'DISABLED';
+    RETURN NULL;
+END
+$$;
+
 -- One trigger per event: PostgreSQL does not allow transition tables on a trigger
 -- registered for more than one event.
 CREATE OR REPLACE TRIGGER tr_user_role_assignment_insert_bump_version
@@ -574,3 +609,10 @@ CREATE OR REPLACE TRIGGER tr_staff_status_disables_login
     REFERENCING NEW TABLE AS new_row
     FOR EACH STATEMENT
     EXECUTE FUNCTION auth_disable_login_for_inactive_staff();
+
+-- The same for a platform operator.
+CREATE OR REPLACE TRIGGER tr_platform_operator_status_disables_login
+    AFTER UPDATE ON platform_operator
+    REFERENCING NEW TABLE AS new_row
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION auth_disable_login_for_inactive_operator();

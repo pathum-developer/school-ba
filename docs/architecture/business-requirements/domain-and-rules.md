@@ -7,6 +7,14 @@
 - A branch must belong to exactly one school.
 - Data owned by one school must not be mixed with data owned by another school.
 
+## Platform Operators
+
+- A platform operator is a person who runs the platform itself, not an employee of any school.
+- A platform operator belongs to no school, which is what distinguishes them from staff.
+- A platform operator exists independently of any login, so someone may be recorded before they are given access and remain on record after it is withdrawn.
+- Employment status governs access. An operator who has left or been suspended must not be able to sign in.
+- Platform access is not implied by being recorded as an operator. It is granted through roles like any other access.
+
 ## Learners
 
 - A learner is a school-owned record of one person enrolled at the school.

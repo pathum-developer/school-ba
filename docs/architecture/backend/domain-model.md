@@ -83,32 +83,62 @@ Constraints:
 - Membership grants nothing by itself. It is the precondition for holding a
   branch-owned role, and removing it removes those roles.
 
+## Platform Model
+
+### PlatformOperator
+
+Represents a person who runs the platform itself. It has no owning school, which is
+what separates an operator from school staff, and like the other person records it
+exists whether or not the person currently has a login.
+
+- `id`: internal UUID primary key.
+- `employeeNo`: platform-wide employee number.
+- `fullName`: legal name.
+- `designation`: human resources label.
+- `employmentStatus`: active, on leave, suspended, resigned, or terminated.
+- `email`: required contact address.
+- `joinedOn` and `leftOn`: employment dates.
+
+Constraints:
+
+- A platform operator belongs to no school.
+- `employeeNo` and `email` are unique across the platform, since there is no school
+  to scope them by.
+- `designation` grants nothing. Authority comes only from roles granted to the login.
+
 ## Authentication Model
 
 ### AppUser
 
-One login record. Staff, platform operators, and learners all authenticate through it.
+One login record. Platform operators, school staff, and learners all authenticate
+through it. Every login points at exactly one person record; `app_user` itself holds
+credentials and account state, never the person's details.
 
 - `id`: internal UUID primary key.
 - `schoolId`: owning school, or absent for a platform operator.
 - `username`: login identifier.
 - `passwordHash`: absent until the account is activated.
 - `status`: pending activation, active, suspended, locked, or disabled.
+- `platformOperatorId`: the operator this login belongs to, or absent otherwise.
 - `staffId`: the staff member this login belongs to, or absent otherwise.
 - `learnerId`: the learner this login belongs to, or absent otherwise.
 - `authorizationVersion`: change counter used to invalidate cached permissions.
 
 Constraints:
 
-- `learnerId` present means the login is a learner's. `staffId` present means it is
-  a staff member's. A login must never carry both.
-- A platform operator carries neither, because they are employed by no school.
-- A learner has at most one login, and a staff member has at most one login.
+- Exactly one of `platformOperatorId`, `staffId`, and `learnerId` is present. The
+  one that is present determines what kind of account it is.
+- A login with no school must be a platform operator's, and a login with a school
+  must be a staff member's or a learner's.
+- Each person has at most one login.
 - `staffId` and `learnerId` must reference records owned by the same `schoolId`.
 - A learner login is never a branch member, which is what keeps it out of every
   branch-owned role.
 - A branch-owned role may only be granted to a login whose staff member currently
   works at that branch.
+- `displayName` and `email` on the login are the account's own label and its
+  security contact address. The person record remains authoritative for the legal
+  name and the contact address.
 
 ### Learner Username Generation
 
