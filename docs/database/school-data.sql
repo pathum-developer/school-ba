@@ -66,4 +66,28 @@ INSERT INTO public.x_branch_license_class (id, branch_id, license_class_id, crea
 	('8fefa01e-4932-465c-8bb2-f2d06990ba51', '30000000-0000-0000-0000-000000000002', 'b619bab6-1c1a-4fc5-8f01-3c2e0dfa018e', '2026-08-27 14:50:12.367369', 22000.00, 'system', 'system', '2026-08-27 14:50:12.861183', '20000000-0000-0000-0000-000000000001'),
 	('d5eba66f-eed1-498a-8e58-436dfb9de0f1', '30000000-0000-0000-0000-000000000002', '87278e0b-7b25-4860-ae58-29c32be0b6ed', '2026-08-27 14:50:12.367369', 65000.00, 'system', 'system', '2026-08-27 14:50:12.861183', '20000000-0000-0000-0000-000000000001') ON CONFLICT DO NOTHING;
 
+-- r_permission
+-- The action catalogue. max_scope_type is the deepest scope a role may hold the
+-- permission at, not a privilege level: capped at SCHOOL it may sit in a platform or
+-- school role but never a branch-owned one; capped at BRANCH it may sit in any.
+--
+-- There is deliberately no 'view branch staff' or 'view branch details' code. The
+-- word branch there is the scope the role is granted at, not part of the action, so
+-- staff:read at branch scope reads that branch's staff and the same code at school
+-- scope reads all of them.
+INSERT INTO public.r_permission (id, code, resource, action, max_scope_type, description) VALUES
+	('40000000-0000-0000-0000-000000000001', 'branch:create', 'branch', 'create', 'SCHOOL', 'Create a branch or yard within the school'),
+	('40000000-0000-0000-0000-000000000002', 'branch:manage-status', 'branch', 'manage-status', 'SCHOOL', 'Activate or deactivate a branch, and set which branch is the head office'),
+	('40000000-0000-0000-0000-000000000003', 'branch-license-class:manage', 'branch-license-class', 'manage', 'BRANCH', 'Set which licence classes a branch offers and the price of each'),
+	('40000000-0000-0000-0000-000000000004', 'staff:read', 'staff', 'read', 'BRANCH', 'View staff records and their branch assignments'),
+	('40000000-0000-0000-0000-000000000005', 'branch:read', 'branch', 'read', 'BRANCH', 'View branch details, including contact numbers and licence class offerings'),
+	('40000000-0000-0000-0000-000000000006', 'branch:update', 'branch', 'update', 'BRANCH', 'Update branch details such as name, address, type and contact numbers')
+ON CONFLICT (code) DO UPDATE
+SET resource = EXCLUDED.resource,
+	action = EXCLUDED.action,
+	max_scope_type = EXCLUDED.max_scope_type,
+	description = EXCLUDED.description,
+	updated_at = now(),
+	updated_by = 'system';
+
 COMMIT;

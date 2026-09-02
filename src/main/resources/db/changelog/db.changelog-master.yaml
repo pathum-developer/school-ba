@@ -7,3 +7,7 @@ databaseChangeLog:
       file: db/changelog/changes/003-harden-legacy-tables-for-multi-tenant-school-management.yaml
   - include:
       file: db/changelog/changes/004-rename-tables-with-prefix-convention.yaml
+  - include:
+      file: db/changelog/changes/005-seed-branch-permissions.yaml
+  - include:
+      file: db/changelog/changes/006-seed-branch-update-permission.yaml

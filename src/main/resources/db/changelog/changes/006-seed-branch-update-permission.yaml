@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 027-seed-branch-update-permission
+      author: codex
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: ../sql/027-seed-branch-update-permission.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
