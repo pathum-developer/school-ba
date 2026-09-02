@@ -12,4 +12,4 @@ This package owns reusable cross-domain code.
 
 - Keep utilities stateless unless there is a clear Spring-managed dependency.
 - Keep shared exceptions focused and reusable.
-- Avoid coupling `common` back to `student`, `user`, or `auth`.
+- Avoid coupling `common` back to `learner`, `user`, or `auth`.

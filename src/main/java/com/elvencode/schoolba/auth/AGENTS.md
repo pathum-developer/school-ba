@@ -6,7 +6,7 @@ This package owns authentication and authorization domain code.
 
 - Keep login, registration, token issuing, token validation, and auth DTOs under `auth`.
 - Keep Spring Security configuration classes under `config.security` unless the class is pure auth-domain logic.
-- Do not put student or user business workflows here unless they are required for authentication or authorization.
+- Do not put learner or user business workflows here unless they are required for authentication or authorization.
 
 ## Design Rules
 

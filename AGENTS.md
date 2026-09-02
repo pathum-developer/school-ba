@@ -62,7 +62,7 @@ When the user asks to review a task or code, also follow [docs/review/AGENTS.md]
 
 Use nested `AGENTS.md` files for package-specific rules. Keep this root file for repository-wide conventions only.
 
-Codex loads instructions by directory path. When working inside a package such as `student`, also follow the closest nested `AGENTS.md` in that package.
+Codex loads instructions by directory path. When working inside a package such as `learner`, also follow the closest nested `AGENTS.md` in that package.
 
 Do not add task-specific Markdown files that Codex must discover by class name. Prefer directory-scoped `AGENTS.md` files because they are loaded natively.
 
@@ -110,7 +110,7 @@ Current tenant model:
 
 - School is the tenant boundary.
 - Branch belongs to one school.
-- Learner is a school-owned student record and belongs to exactly one school.
+- Learner is a school-owned record of one enrolled person and belongs to exactly one school.
 - A learner has one current registered branch at a time.
 - Branch transfers happen only between branches of the same school.
 

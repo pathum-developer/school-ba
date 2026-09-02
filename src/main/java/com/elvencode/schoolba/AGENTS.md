@@ -10,7 +10,7 @@ Follow a feature/domain-based package structure.
 
 Use lowercase singular domain names, for example:
 
-- `student`
+- `learner`
 - `user`
 - `auth`
 - `school`
@@ -48,12 +48,12 @@ config/
 ## Rules
 
 - Put school-level catalogue, public school profile, branch, and yard code under `school`.
-- Put student-related code under `student`.
+- Put learner-related code under `learner`.
 - Put user-related code under `user`.
 - Put authentication and authorization code under `auth`.
 - Put reusable helpers, shared DTOs, exceptions, mappers, and utilities under `common`.
 - Put Spring configuration classes under `config`.
-- Use singular package names, for example `student`, not `students`.
+- Use singular package names, for example `learner`, not `learners`.
 - Use lowercase package names.
 - Keep controller, service, repository, entity, dto, mapper, and enums separated.
 - Keep service interfaces in `service` and service implementations in `service.impl`.

@@ -9,12 +9,12 @@
 
 ## Learners
 
-- A learner is a school-owned student record.
+- A learner is a school-owned record of one person enrolled at the school.
 - A learner must belong to exactly one school.
 - The system does not support one learner studying at multiple schools at the same time.
 - A learner must have exactly one current registered branch.
 - The current registered branch must belong to the same school as the learner.
-- School-specific identifiers such as student number, admission number, enrollment status, balances, and learning progress belong directly to the learner.
+- School-specific identifiers such as learner number, admission number, enrollment status, balances, and learning progress belong directly to the learner.
 
 ## Branch Transfers
 

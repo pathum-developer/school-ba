@@ -7,7 +7,7 @@
 - Each branch belongs to exactly one school.
 - A learner belongs to exactly one school.
 - A learner must not study at multiple schools at the same time in this system.
-- Student numbers, enrollments, lessons, payments, documents, progress, and branch assignment are scoped to the learner's school.
+- Learner numbers, enrollments, lessons, payments, documents, progress, and branch assignment are scoped to the learner's school.
 - A school must not be able to view or modify another school's learners.
 
 ## Branch Assignment

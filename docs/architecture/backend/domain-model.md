@@ -20,13 +20,13 @@
 
 ### Learner
 
-Represents a school-owned student record.
+Represents a school-owned learner record.
 
 - `id`: internal UUID primary key.
 - `schoolId`: owning school.
 - `currentBranchId`: current registered branch.
-- `studentNo`: school-specific student number.
-- `status`: school-specific student status.
+- `learnerNo`: school-specific learner number.
+- `status`: school-specific learner status.
 - Identity and contact fields required to manage the learner within the school.
 
 Constraints:
