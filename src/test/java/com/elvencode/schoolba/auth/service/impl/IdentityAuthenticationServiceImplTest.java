@@ -10,7 +10,6 @@ import com.elvencode.schoolba.auth.dto.IdentityGrant;
 import com.elvencode.schoolba.auth.entity.Identity;
 import com.elvencode.schoolba.auth.enums.IdentityStatus;
 import com.elvencode.schoolba.auth.enums.ScopeType;
-import com.elvencode.schoolba.auth.repository.IdentityGrantProjection;
 import com.elvencode.schoolba.auth.repository.IdentityRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,8 +63,8 @@ class IdentityAuthenticationServiceImplTest {
         when(identityRepository.findByUsername(USERNAME)).thenReturn(Optional.of(activeIdentity()));
         when(passwordEncoder.matches(RAW_PASSWORD, PASSWORD_HASH)).thenReturn(true);
         when(identityRepository.findGrantListByIdentityId(IDENTITY_ID)).thenReturn(List.of(
-                grantRow("branch:read", "SCHOOL", SCHOOL_ID, null),
-                grantRow("branch:create", "SCHOOL", SCHOOL_ID, null)
+                new IdentityGrant("branch:read", ScopeType.SCHOOL, SCHOOL_ID, null),
+                new IdentityGrant("branch:create", ScopeType.SCHOOL, SCHOOL_ID, null)
         ));
 
         AuthenticatedIdentity principal = identityAuthenticationService.authenticate(USERNAME, RAW_PASSWORD);
@@ -182,28 +181,4 @@ class IdentityAuthenticationServiceImplTest {
         return identity;
     }
 
-    private IdentityGrantProjection grantRow(String permissionCode, String scopeType, UUID schoolId, UUID branchId) {
-        return new IdentityGrantProjection() {
-
-            @Override
-            public String getPermissionCode() {
-                return permissionCode;
-            }
-
-            @Override
-            public String getScopeType() {
-                return scopeType;
-            }
-
-            @Override
-            public UUID getSchoolId() {
-                return schoolId;
-            }
-
-            @Override
-            public UUID getBranchId() {
-                return branchId;
-            }
-        };
-    }
 }

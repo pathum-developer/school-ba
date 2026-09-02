@@ -3,13 +3,10 @@ package com.elvencode.schoolba.auth.service.impl;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.UUID;
 
 import com.elvencode.schoolba.auth.dto.AuthenticatedIdentity;
 import com.elvencode.schoolba.auth.dto.IdentityGrant;
 import com.elvencode.schoolba.auth.entity.Identity;
-import com.elvencode.schoolba.auth.enums.ScopeType;
-import com.elvencode.schoolba.auth.repository.IdentityGrantProjection;
 import com.elvencode.schoolba.auth.repository.IdentityRepository;
 import com.elvencode.schoolba.auth.service.IIdentityAuthenticationService;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +54,7 @@ public class IdentityAuthenticationServiceImpl implements IIdentityAuthenticatio
         Identity identity = findAuthenticatedIdentity(normalizedUsername, rawPassword);
         verifyAccountMaySignIn(identity);
 
-        List<IdentityGrant> grantList = loadGrantList(identity.getId());
+        List<IdentityGrant> grantList = identityRepository.findGrantListByIdentityId(identity.getId());
         log.debug("Authenticated identity {} with {} permission grants", identity.getId(), grantList.size());
         return new AuthenticatedIdentity(identity, grantList);
     }
@@ -107,22 +104,6 @@ public class IdentityAuthenticationServiceImpl implements IIdentityAuthenticatio
             log.warn("Rejected login for identity {}: status {}", identity.getId(), identity.getStatus());
             throw new DisabledException(ACCOUNT_NOT_ACTIVE_MESSAGE);
         }
-    }
-
-    private List<IdentityGrant> loadGrantList(UUID identityId) {
-        return identityRepository.findGrantListByIdentityId(identityId)
-                .stream()
-                .map(this::toGrant)
-                .toList();
-    }
-
-    private IdentityGrant toGrant(IdentityGrantProjection projection) {
-        return new IdentityGrant(
-                projection.getPermissionCode(),
-                ScopeType.valueOf(projection.getScopeType()),
-                projection.getSchoolId(),
-                projection.getBranchId()
-        );
     }
 
     /**

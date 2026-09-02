@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.elvencode.schoolba.auth.dto.IdentityGrant;
 import com.elvencode.schoolba.auth.entity.Identity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,29 +24,32 @@ public interface IdentityRepository extends JpaRepository<Identity, UUID> {
     /**
      * Every unexpired permission the account holds, with the scope each was granted at.
      *
-     * <p>Native because the three tables it walks have no entities: authentication only
-     * ever reads this shape, and mapping roles, grants and the permission catalogue as
-     * an object graph would cost several queries per sign-in for data nothing else uses.
+     * <p>Builds {@link IdentityGrant} straight from the result through a constructor
+     * expression, so there is no projection to map and no string to convert: the scope
+     * arrives as a {@code ScopeType} because the column is mapped as one.
      *
-     * <p>Column aliases are quoted so PostgreSQL preserves their case for the projection;
-     * unquoted, it would fold them to lower case and no property would bind.
+     * <p>Joins the link table directly instead of walking an association through the role.
+     * Only the permission codes are wanted, and the role itself is never read, so mapping
+     * the association would add an entity to load on the sign-in path for nothing.
+     *
+     * <p>Compares against the database clock rather than the application's, so a grant
+     * expires at the same instant for every caller regardless of what time their host
+     * thinks it is.
      */
-    @Query(
-            value = """
-                    select distinct permission.code       as "permissionCode",
-                                    assignment.scope_type as "scopeType",
-                                    assignment.school_id  as "schoolId",
-                                    assignment.branch_id  as "branchId"
-                    from t_identity_role_assignment assignment
-                    join x_role_permission role_permission
-                            on role_permission.role_id = assignment.role_id
-                    join r_permission permission
-                            on permission.id = role_permission.permission_id
-                    where assignment.identity_id = :identityId
-                            and (assignment.expires_at is null or assignment.expires_at > now())
-                    """,
-            nativeQuery = true
-    )
-    List<IdentityGrantProjection> findGrantListByIdentityId(@Param("identityId") UUID identityId);
+    @Query("""
+            select distinct new com.elvencode.schoolba.auth.dto.IdentityGrant(
+                           permission.code,
+                           assignment.scopeType,
+                           assignment.schoolId,
+                           assignment.branchId)
+            from IdentityRoleAssignment assignment
+            join RolePermission rolePermission
+                    on rolePermission.id.roleId = assignment.roleId
+            join Permission permission
+                    on permission.id = rolePermission.id.permissionId
+            where assignment.identityId = :identityId
+                    and (assignment.expiresAt is null or assignment.expiresAt > current_timestamp)
+            """)
+    List<IdentityGrant> findGrantListByIdentityId(@Param("identityId") UUID identityId);
 
 }
