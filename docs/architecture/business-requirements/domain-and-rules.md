@@ -37,6 +37,32 @@
 - A learner is never a member of a branch. Branch membership describes where staff work.
 - A login must stop working when the learner is no longer in an active enrollment status.
 
+## Staff
+
+- A staff member is a school-owned record of one person employed by the school.
+- A staff member belongs to exactly one school.
+- A staff member exists independently of any login. Recording someone as staff must not require issuing them system access.
+- A staff member has an employee number that is unique within the school.
+- A staff member must have a contact phone number, unique within the school.
+- A staff member's email address is optional, and unique within the school where present.
+- Employment status governs access. A staff member who has resigned, been terminated, or been suspended must not be able to sign in.
+- A designation such as instructor or registrar is a human resources label. It does not grant any permission. What a staff member may do comes only from the roles granted to their login.
+
+## Staff Branch Assignment
+
+- A staff member may work at zero, one, or many branches of their school.
+- Branch assignment describes employment, not access. It is recorded for a staff member whether or not they have a login.
+- A staff member may only be assigned to branches of their own school.
+- Holding a branch-owned role requires a current assignment to that branch.
+- Removing a branch assignment removes the branch roles that depended on it.
+
+## Staff Portal Access
+
+- A staff member may be given a login.
+- A login belongs to at most one staff member, and a staff member has at most one login.
+- A login belongs to a staff member or to a learner, never to both.
+- A platform operator's login belongs to neither, because a platform operator is not employed by any school.
+
 ## Branch Transfers
 
 - Branch transfer is only between branches of the same school.

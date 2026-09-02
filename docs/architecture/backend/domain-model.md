@@ -39,6 +39,50 @@ Constraints:
 - `phoneNumber` is unique within the school and not across schools.
 - `email` is optional, and unique within the school when present.
 
+## Staff Model
+
+### Staff
+
+Represents a school-owned employment record. It exists whether or not the person
+has a login, so someone can be recorded as staff and assigned to a branch without
+being given system access.
+
+- `id`: internal UUID primary key.
+- `schoolId`: owning school.
+- `employeeNo`: school-specific employee number.
+- `fullName`: legal name, as distinct from a login display name.
+- `designation`: human resources label such as instructor or registrar.
+- `employmentStatus`: active, on leave, suspended, resigned, or terminated.
+- `phoneNumber`: required contact number.
+- `email`: optional email address.
+- `joinedOn` and `leftOn`: employment dates.
+- Remaining identity fields required to manage the employee within the school.
+
+Constraints:
+
+- A staff member belongs to exactly one school.
+- `employeeNo` is unique within the school.
+- `phoneNumber` is unique within the school and not across schools.
+- `email` is optional, and unique within the school when present.
+- `leftOn`, where present, is not before `joinedOn`.
+- `designation` grants nothing. Authority comes only from roles granted to the login.
+
+### StaffBranchMembership
+
+Which branches a staff member works at: zero, one, or many.
+
+- `staffId`: the employed person.
+- `branchId`: a branch of that person's school.
+- `isPrimary`: the home branch, at most one per staff member.
+
+Constraints:
+
+- `branchId` must reference a branch owned by the same school as the staff member.
+- Membership is keyed by staff member, not by login, so it can be recorded for
+  someone who has no system access.
+- Membership grants nothing by itself. It is the precondition for holding a
+  branch-owned role, and removing it removes those roles.
+
 ## Authentication Model
 
 ### AppUser
@@ -50,16 +94,21 @@ One login record. Staff, platform operators, and learners all authenticate throu
 - `username`: login identifier.
 - `passwordHash`: absent until the account is activated.
 - `status`: pending activation, active, suspended, locked, or disabled.
-- `learnerId`: the learner this login belongs to, or absent for staff and platform operators.
+- `staffId`: the staff member this login belongs to, or absent otherwise.
+- `learnerId`: the learner this login belongs to, or absent otherwise.
 - `authorizationVersion`: change counter used to invalidate cached permissions.
 
 Constraints:
 
-- `learnerId` present means the login is a learner's. Absent means staff or platform.
-- A learner has at most one login.
-- `learnerId` must reference a learner owned by the same `schoolId`.
-- A platform operator has no school and therefore can never be a learner.
-- A learner login must never be a branch member, which is what keeps it out of every branch-owned role.
+- `learnerId` present means the login is a learner's. `staffId` present means it is
+  a staff member's. A login must never carry both.
+- A platform operator carries neither, because they are employed by no school.
+- A learner has at most one login, and a staff member has at most one login.
+- `staffId` and `learnerId` must reference records owned by the same `schoolId`.
+- A learner login is never a branch member, which is what keeps it out of every
+  branch-owned role.
+- A branch-owned role may only be granted to a login whose staff member currently
+  works at that branch.
 
 ### Learner Username Generation
 

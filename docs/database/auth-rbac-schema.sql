@@ -25,24 +25,31 @@
 -- Apply order:
 --   1. src/main/resources/db-data/school-schema.sql   school, branch
 --   2. docs/database/learner-schema.sql               learner
---   3. this file
+--   3. docs/database/staff-schema.sql                 staff
+--   4. this file
 --
 -- Reference document. The runtime schema is applied by Liquibase under
 -- src/main/resources/db/changelog; keep this file aligned when that changes.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Prerequisites. app_user and the grant tables reference school, branch and learner
--- as school-matched pairs, so those composite targets must already exist. Checked
--- up front to fail with something actionable rather than a bare "relation does not
--- exist" from the middle of the file.
+-- Prerequisites. app_user and the grant tables reference school, branch, learner and
+-- staff as school-matched pairs, so those composite targets must already exist.
+-- Checked up front to fail with something actionable rather than a bare "relation
+-- does not exist" from the middle of the file.
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'learner' AND relkind = 'r') THEN
         RAISE EXCEPTION 'apply docs/database/learner-schema.sql first: app_user references learner';
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'staff' AND relkind = 'r') THEN
+        RAISE EXCEPTION 'apply docs/database/staff-schema.sql first: app_user references staff';
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uk_learner_id_school') THEN
         RAISE EXCEPTION 'learner must declare UNIQUE (id, school_id) as uk_learner_id_school';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uk_staff_id_school') THEN
+        RAISE EXCEPTION 'staff must declare UNIQUE (id, school_id) as uk_staff_id_school';
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uk_branch_id_school') THEN
         RAISE EXCEPTION 'branch must declare UNIQUE (id, school_id) as uk_branch_id_school';
@@ -59,7 +66,11 @@ $$;
 CREATE TABLE IF NOT EXISTS app_user (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     school_id uuid,                                       -- NULL only for a platform operator
+    staff_id uuid,                                        -- set only for a staff login
     learner_id uuid,                                      -- set only for a learner login
+    -- "not a learner", which is what the role audience rule turns on. Platform
+    -- operators have neither link and count as staff for that purpose, so this is
+    -- deliberately not defined as staff_id IS NOT NULL.
     is_staff boolean GENERATED ALWAYS AS (learner_id IS NULL) STORED,
     username varchar(64) NOT NULL,                        -- the only login identifier, staff and learner alike
     email varchar(254),                                   -- optional; a learner commonly has none
@@ -77,18 +88,23 @@ CREATE TABLE IF NOT EXISTS app_user (
     updated_by varchar(20) DEFAULT 'system' NOT NULL,
     CONSTRAINT pk_app_user PRIMARY KEY (id),
     CONSTRAINT fk_app_user_school FOREIGN KEY (school_id) REFERENCES school (id) ON DELETE RESTRICT,
-    -- The learner must belong to the same school as the login.
+    -- The linked person must belong to the same school as the login.
     CONSTRAINT fk_app_user_learner FOREIGN KEY (learner_id, school_id) REFERENCES learner (id, school_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_app_user_staff FOREIGN KEY (staff_id, school_id) REFERENCES staff (id, school_id) ON DELETE RESTRICT,
     -- Composite FK target. Lets staff_branch_membership prove that the user and the
     -- branch belong to the same school. Platform users (school_id NULL) fall out of
     -- that check under MATCH SIMPLE, which is why they can never join a branch.
     CONSTRAINT uk_app_user_id_school UNIQUE (id, school_id),
-    -- Composite FK target, so staff_branch_membership and user_role_assignment can
-    -- require the account to actually be staff.
+    -- Composite FK target, so user_role_assignment can require that the account is
+    -- not a learner before it may hold a staff-audience role.
     CONSTRAINT uk_app_user_id_is_staff UNIQUE (id, is_staff),
-    -- One login per learner. Nullable, and SQL treats NULLs as distinct, so any
-    -- number of staff rows share NULL while a learner can be claimed only once.
+    -- Composite FK target, so a branch grant can be traced from the login to the
+    -- staff member and on to that person's branch membership.
+    CONSTRAINT uk_app_user_id_staff UNIQUE (id, staff_id),
+    -- One login per person. Nullable, and SQL treats NULLs as distinct, so any
+    -- number of rows share NULL while a given person can be claimed only once.
     CONSTRAINT uk_app_user_learner UNIQUE (learner_id),
+    CONSTRAINT uk_app_user_staff UNIQUE (staff_id),
     -- Global, because it is what makes a single login endpoint possible: the sign-in
     -- request carries a username and nothing else, so it must resolve on its own.
     -- A learner username embeds the school code and is therefore collision-free by
@@ -101,8 +117,11 @@ CREATE TABLE IF NOT EXISTS app_user (
     -- Access is issued with no password and activated later, but an account must
     -- never be able to reach ACTIVE without one.
     CONSTRAINT ck_app_user_active_needs_password CHECK (status <> 'ACTIVE' OR password_hash IS NOT NULL),
-    -- A platform operator has no school, so it can never be a learner.
+    -- A platform operator has no school, so it can be neither a learner nor staff.
     CONSTRAINT ck_app_user_learner_needs_school CHECK (learner_id IS NULL OR school_id IS NOT NULL),
+    CONSTRAINT ck_app_user_staff_needs_school CHECK (staff_id IS NULL OR school_id IS NOT NULL),
+    -- A login belongs to a staff member or to a learner, never to both.
+    CONSTRAINT ck_app_user_single_person CHECK (staff_id IS NULL OR learner_id IS NULL),
     CONSTRAINT ck_app_user_display_name_not_blank CHECK (btrim(display_name) <> ''),
     CONSTRAINT ck_app_user_authorization_version_non_negative CHECK (authorization_version >= 0),
     CONSTRAINT ck_app_user_failed_attempt_count_non_negative CHECK (failed_attempt_count >= 0),
@@ -134,17 +153,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_app_user_school_email
     WHERE email IS NOT NULL;
 
 -- Which branches a staff member works at: zero, one, or many.
+--
+-- Keyed by staff member rather than by login, because where someone works is an
+-- employment fact that holds whether or not they have system access. An instructor
+-- with no account still belongs to a branch.
+--
 -- Membership grants nothing on its own. It is the precondition for holding a
 -- branch-owned role, and deleting a row here revokes those roles by cascade.
 --
--- Learners are barred structurally: is_staff is pinned true by the check below and
--- foreign-keyed to app_user, whose is_staff is false for any learner login. That is
--- what keeps a learner out of every branch-owned role without a further rule.
+-- Learners are barred structurally and need no flag to say so: this table
+-- references staff, and a learner has no staff record to reference.
 CREATE TABLE IF NOT EXISTS staff_branch_membership (
-    user_id uuid NOT NULL,
+    staff_id uuid NOT NULL,
     branch_id uuid NOT NULL,
-    school_id uuid NOT NULL,                              -- must match both the user's and the branch's school
-    is_staff boolean DEFAULT true NOT NULL,               -- pinned true; exists only to be foreign-keyed
+    school_id uuid NOT NULL,                              -- must match both the staff member's and the branch's school
     is_primary boolean DEFAULT false NOT NULL,            -- the staff member's home branch
     assigned_at timestamp DEFAULT now() NOT NULL,
     created_at timestamp DEFAULT now() NOT NULL,
@@ -152,19 +174,16 @@ CREATE TABLE IF NOT EXISTS staff_branch_membership (
     updated_at timestamp DEFAULT now() NOT NULL,
     updated_by varchar(20) DEFAULT 'system' NOT NULL,
     -- Composite FK target for user_role_assignment: a branch grant must name a
-    -- (user_id, branch_id) pair that exists here.
-    CONSTRAINT pk_staff_branch_membership PRIMARY KEY (user_id, branch_id),
-    -- These two meet on school_id, so the user and the branch must share a school.
-    CONSTRAINT fk_staff_branch_membership_user FOREIGN KEY (user_id, school_id) REFERENCES app_user (id, school_id) ON DELETE CASCADE,
+    -- (staff_id, branch_id) pair that exists here.
+    CONSTRAINT pk_staff_branch_membership PRIMARY KEY (staff_id, branch_id),
+    -- These two meet on school_id, so the person and the branch must share a school.
+    CONSTRAINT fk_staff_branch_membership_staff FOREIGN KEY (staff_id, school_id) REFERENCES staff (id, school_id) ON DELETE CASCADE,
     CONSTRAINT fk_staff_branch_membership_branch FOREIGN KEY (branch_id, school_id) REFERENCES branch (id, school_id) ON DELETE CASCADE,
-    -- Only a staff account can match, because a learner login generates is_staff false.
-    CONSTRAINT fk_staff_branch_membership_is_staff FOREIGN KEY (user_id, is_staff) REFERENCES app_user (id, is_staff),
-    CONSTRAINT ck_staff_branch_membership_is_staff CHECK (is_staff),
     CONSTRAINT ck_staff_branch_membership_timestamps CHECK (updated_at >= created_at)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS ux_staff_branch_membership_primary_per_user
-    ON staff_branch_membership (user_id)
+CREATE UNIQUE INDEX IF NOT EXISTS ux_staff_branch_membership_primary_per_staff
+    ON staff_branch_membership (staff_id)
     WHERE is_primary;
 
 CREATE INDEX IF NOT EXISTS ix_staff_branch_membership_branch
@@ -288,6 +307,7 @@ CREATE TABLE IF NOT EXISTS user_role_assignment (
     branch_id uuid,                                       -- NOT NULL only when BRANCH
     assignable_to varchar(32) DEFAULT 'STAFF' NOT NULL,   -- mirrors role.assignable_to
     is_staff boolean DEFAULT true NOT NULL,               -- mirrors app_user.is_staff
+    staff_id uuid,                                        -- mirrors app_user.staff_id; required for a branch grant
     granted_by uuid NOT NULL,                             -- real FK, not the varchar audit column
     granted_at timestamp DEFAULT now() NOT NULL,
     expires_at timestamp,                                 -- NULL means the grant does not expire
@@ -309,17 +329,21 @@ CREATE TABLE IF NOT EXISTS user_role_assignment (
     --   _role_scope   always enforced    grant scope equals the role's own scope
     --   _role_school  school_id not null grant school equals the role's school
     --   _role_branch  branch_id not null grant branch equals the role's branch
-    --   _membership   branch_id not null the user is a current member of that branch
+    --   _staff        staff_id not null  the staff_id below is the account's own
+    --   _membership   staff_id not null  that staff member works at that branch
     --
-    -- Chained: a branch role forces scope_type BRANCH, the shape check then forces
-    -- branch_id non-null, which forces it to equal the role's branch, which forces a
-    -- membership row. Storing a role for staff of another branch is not possible.
+    -- Chained: a branch role forces scope_type BRANCH, the shape checks then force
+    -- branch_id and staff_id non-null, which force the branch to equal the role's
+    -- branch and the staff member to be the account's own, which forces a membership
+    -- row. Storing a branch role for someone who does not work there is not possible.
     CONSTRAINT fk_user_role_assignment_role_scope FOREIGN KEY (role_id, scope_type) REFERENCES role (id, scope_type) ON DELETE CASCADE,
     CONSTRAINT fk_user_role_assignment_role_school FOREIGN KEY (role_id, school_id) REFERENCES role (id, school_id) ON DELETE CASCADE,
     CONSTRAINT fk_user_role_assignment_role_branch FOREIGN KEY (role_id, branch_id) REFERENCES role (id, branch_id) ON DELETE CASCADE,
+    -- Pins staff_id to the staff member the account actually belongs to.
+    CONSTRAINT fk_user_role_assignment_staff FOREIGN KEY (user_id, staff_id) REFERENCES app_user (id, staff_id),
     -- CASCADE here is the lifecycle rule: removing someone from a branch revokes
     -- their roles at that branch, with no second cleanup step to forget.
-    CONSTRAINT fk_user_role_assignment_membership FOREIGN KEY (user_id, branch_id) REFERENCES staff_branch_membership (user_id, branch_id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_role_assignment_membership FOREIGN KEY (staff_id, branch_id) REFERENCES staff_branch_membership (staff_id, branch_id) ON DELETE CASCADE,
     --
     -- Audience. These two pin the columns above to their sources: the audience to the
     -- role's own, and is_staff to what the account actually is. With both honest, the
@@ -331,11 +355,12 @@ CREATE TABLE IF NOT EXISTS user_role_assignment (
     CONSTRAINT uk_user_role_assignment_grant UNIQUE NULLS NOT DISTINCT (user_id, role_id, branch_id),
     CONSTRAINT ck_user_role_assignment_scope_type CHECK (scope_type IN ('PLATFORM', 'SCHOOL', 'BRANCH')),
     CONSTRAINT ck_user_role_assignment_assignable_to CHECK (assignable_to IN ('STAFF', 'LEARNER')),
-    -- These two shape checks are load-bearing, not cosmetic: they guarantee the
-    -- branch_id above is non-null for branch grants, so the FKs cannot be dodged
-    -- by leaving it NULL and slipping past MATCH SIMPLE.
+    -- These three shape checks are load-bearing, not cosmetic: they guarantee the
+    -- branch_id and staff_id above are non-null for branch grants, so neither FK can
+    -- be dodged by leaving a column NULL and slipping past MATCH SIMPLE.
     CONSTRAINT ck_user_role_assignment_school_shape CHECK ((scope_type = 'PLATFORM') = (school_id IS NULL)),
     CONSTRAINT ck_user_role_assignment_branch_shape CHECK ((scope_type = 'BRANCH') = (branch_id IS NOT NULL)),
+    CONSTRAINT ck_user_role_assignment_branch_needs_staff CHECK (scope_type <> 'BRANCH' OR staff_id IS NOT NULL),
     CONSTRAINT ck_user_role_assignment_expiry CHECK (expires_at IS NULL OR expires_at > granted_at),
     CONSTRAINT ck_user_role_assignment_timestamps CHECK (updated_at >= created_at)
 );
@@ -481,6 +506,23 @@ BEGIN
 END
 $$;
 
+-- The same rule for staff, and it matters more here: a terminated employee who can
+-- still sign in is a worse outcome than a withdrawn learner who can. On leave still
+-- counts as employed, so it keeps access.
+CREATE OR REPLACE FUNCTION auth_disable_login_for_inactive_staff()
+    RETURNS trigger
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE app_user
+    SET status = 'DISABLED',
+        authorization_version = authorization_version + 1
+    WHERE staff_id IN (SELECT id FROM new_row WHERE employment_status NOT IN ('ACTIVE', 'ON_LEAVE'))
+      AND status <> 'DISABLED';
+    RETURN NULL;
+END
+$$;
+
 -- One trigger per event: PostgreSQL does not allow transition tables on a trigger
 -- registered for more than one event.
 CREATE OR REPLACE TRIGGER tr_user_role_assignment_insert_bump_version
@@ -525,3 +567,10 @@ CREATE OR REPLACE TRIGGER tr_learner_status_disables_login
     REFERENCING NEW TABLE AS new_row
     FOR EACH STATEMENT
     EXECUTE FUNCTION auth_disable_login_for_inactive_learner();
+
+-- Suspension, resignation or termination disables the staff member's login.
+CREATE OR REPLACE TRIGGER tr_staff_status_disables_login
+    AFTER UPDATE ON staff
+    REFERENCING NEW TABLE AS new_row
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION auth_disable_login_for_inactive_staff();
