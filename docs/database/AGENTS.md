@@ -28,6 +28,9 @@ enforce it.
 - Add unique constraints and indexes for natural keys and invariants, including partial unique indexes where the rule is conditional.
 - Use foreign keys with deliberate `ON DELETE` behavior. Prefer `RESTRICT` for reference data and `CASCADE` only for owned child records.
 - Keep Liquibase changelogs and standalone SQL reference files under `docs/database` aligned.
+- Maintain `docs/database/school-schema.sql` and `docs/database/school-data.sql` as the canonical standalone SQL representation of the current database. A fresh PostgreSQL database must be creatable by running the schema file first and the data file second.
+- Keep `school-schema.sql` as current-state DDL, not migration-style patch SQL. Each `CREATE TABLE` statement must include the complete current column list and table constraints; do not model current schema state with `ALTER TABLE ... ADD COLUMN` statements in this docs schema file.
+- Keep `school-data.sql` limited to seed/reference data and make every seed statement idempotent.
 - For already-applied Liquibase changesets, add a new changeset instead of editing old changesets, unless the database has not been shared or applied anywhere.
 - Seed data should be idempotent using `ON CONFLICT` or an equivalent safe pattern.
 

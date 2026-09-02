@@ -1,96 +1,36 @@
---
--- PostgreSQL database dump
---
+-- School database seed data
+-- Run after docs/database/school-schema.sql.
+-- Seed statements are idempotent and safe to re-run.
 
-\restrict o5ug9gdFm9ersLxQc5y0cOhDnHGbDPFtdrWwadowTo4Gfe66mtWYEvQCLjJJlpH
-
--- Dumped from database version 17.10 (Debian 17.10-1.pgdg13+1)
--- Dumped by pg_dump version 17.10 (Debian 17.10-1.pgdg13+1)
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
 SET client_min_messages = warning;
-SET row_security = off;
 
---
--- Data for Name: m_school; Type: TABLE DATA; Schema: public; Owner: -
---
+BEGIN;
 
+-- m_school
 INSERT INTO public.m_school (id, code, name, short_name, established_year, created_at, updated_at, hotline_href, whatsapp_href, email, created_by, updated_by, tenant_status) VALUES
 	('20000000-0000-0000-0000-000000000001', 'elven', 'Elven Driving School', 'Elven', 1950, '2026-08-27 14:50:12.114374', '2026-08-27 14:50:12.114374', 'tel:+94771234567', 'https://wa.me/94771234567', 'hello@elvendriving.lk', 'system', 'system', 'ACTIVE') ON CONFLICT DO NOTHING;
 
-
---
--- Data for Name: m_branch; Type: TABLE DATA; Schema: public; Owner: -
---
-
+-- m_branch
 INSERT INTO public.m_branch (id, school_id, code, name, branch_type, is_head_office, is_active, created_at, updated_at, address, created_by, updated_by) VALUES
 	('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'rajagiriya', 'Rajagiriya', 'BRANCH', true, true, '2026-08-27 14:50:12.367369', '2026-08-27 14:50:12.367369', 'Cotta Road, Rajagiriya, Sri Lanka', 'system', 'system'),
 	('30000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'wellawatte', 'Wellawatte', 'BRANCH', false, true, '2026-08-27 14:50:12.367369', '2026-08-27 14:50:12.367369', 'Galle Road, Colombo 06, Sri Lanka', 'system', 'system'),
 	('30000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001', 'battaramulla', 'Battaramulla', 'BRANCH', false, true, '2026-08-27 14:50:12.367369', '2026-08-27 14:50:12.367369', 'Pannipitiya Road, Battaramulla, Sri Lanka', 'system', 'system'),
 	('cbd1a06d-4c89-40cf-a59d-2c6410d89d92', '20000000-0000-0000-0000-000000000001', 'petta', 'petta', 'BRANCH', false, true, '2026-08-31 13:40:04.640733', '2026-08-31 19:10:04.046464', 'Cotta Road, petta, Sri Lanka', 'System Generate', 'system') ON CONFLICT DO NOTHING;
 
-
---
--- Data for Name: m_learner; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
-
---
--- Data for Name: m_platform_operator; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
-
---
--- Data for Name: m_staff; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
-
---
--- Data for Name: m_app_user; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
-
---
--- Data for Name: m_branch_contact_number; Type: TABLE DATA; Schema: public; Owner: -
---
-
+-- m_branch_contact_number
 INSERT INTO public.m_branch_contact_number (id, branch_id, contact_type, phone_number, phone_number_e164, is_primary, display_order, created_at, updated_at, created_by, updated_by, school_id) VALUES
 	('30000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000001', 'GENERAL', '077 480 1120', '+94774801120', true, 1, '2026-08-27 14:50:12.367369', '2026-08-27 14:50:12.367369', 'system', 'system', '20000000-0000-0000-0000-000000000001'),
 	('30000000-0000-0000-0000-000000000012', '30000000-0000-0000-0000-000000000002', 'GENERAL', '077 480 1121', '+94774801121', true, 1, '2026-08-27 14:50:12.367369', '2026-08-27 14:50:12.367369', 'system', 'system', '20000000-0000-0000-0000-000000000001'),
 	('30000000-0000-0000-0000-000000000013', '30000000-0000-0000-0000-000000000003', 'GENERAL', '077 480 1122', '+94774801122', true, 1, '2026-08-27 14:50:12.367369', '2026-08-27 14:50:12.367369', 'system', 'system', '20000000-0000-0000-0000-000000000001'),
 	('db000692-f7a7-4e64-91e8-0d6c024414b5', 'cbd1a06d-4c89-40cf-a59d-2c6410d89d92', 'GENERAL', '077 367 1120', '+94774759520', true, 1, '2026-08-31 13:40:04.663205', '2026-08-31 19:10:04.046464', 'System Generate', 'system', '20000000-0000-0000-0000-000000000001') ON CONFLICT DO NOTHING;
 
-
---
--- Data for Name: m_role; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
-
---
--- Data for Name: m_school_contact_number; Type: TABLE DATA; Schema: public; Owner: -
---
-
+-- m_school_contact_number
 INSERT INTO public.m_school_contact_number (id, school_id, contact_type, phone_number, phone_number_e164, is_primary, display_order, created_at, updated_at, created_by, updated_by) VALUES
 	('20000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'HOTLINE', '077 123 4567', '+94771234567', true, 1, '2026-08-27 14:50:12.114374', '2026-08-27 14:50:12.114374', 'system', 'system') ON CONFLICT DO NOTHING;
 
-
---
--- Data for Name: r_license_class; Type: TABLE DATA; Schema: public; Owner: -
---
-
+-- r_license_class
 INSERT INTO public.r_license_class (id, code, name, display_order, is_active, created_at, updated_at, included_class_codes, old_class_codes, source_url, description, created_by, updated_by) VALUES
 	('dcffe559-f09a-4bc2-b2de-01f3e2728fc6', 'A1', 'Light motor cycle', 1, true, '2026-08-27 14:50:11.283197', '2026-08-27 14:50:11.689781', '["G1"]', '["D"]', 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en', 'Light motor cycles of which Engine Capacity does not exceeds 100CC', 'system', 'system'),
 	('2935e370-b6d3-4e7a-98c3-6cbb1bfc5fee', 'A', 'Motorcycle', 2, true, '2026-08-27 14:50:11.283197', '2026-08-27 14:50:11.689781', '["A1", "G1"]', '["D"]', 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en', 'Motorcycles of which Engine capacity exceeds 100CC', 'system', 'system'),
@@ -106,35 +46,7 @@ INSERT INTO public.r_license_class (id, code, name, display_order, is_active, cr
 	('3b66a60e-8be1-49f1-a139-c1d74f5f6da6', 'G', 'Agricultural land vehicle', 12, true, '2026-08-27 14:50:11.283197', '2026-08-27 14:50:11.689781', '["G1"]', '["G"]', 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en', 'Land Vehicle - Agricultural Land Vehicle with or without a trailer', 'system', 'system'),
 	('87278e0b-7b25-4860-ae58-29c32be0b6ed', 'J', 'Special purpose vehicle', 13, true, '2026-08-27 14:50:11.283197', '2026-08-27 14:50:11.689781', '["G1"]', '[]', 'https://dmt.gov.lk/index.php?option=com_content&view=article&id=46&Itemid=163&lang=en', 'Special purpose Vehicle, Vehicle used for construction, loading & unloading excluding motor lorries, light motor lorries and heavy motor lorries, equipped with construction equipment and equipment for loading and unloading goods', 'system', 'system') ON CONFLICT DO NOTHING;
 
-
---
--- Data for Name: r_permission; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
-
---
--- Data for Name: t_refresh_token; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
-
---
--- Data for Name: x_staff_branch_membership; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
-
---
--- Data for Name: t_user_role_assignment; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
-
---
--- Data for Name: x_branch_license_class; Type: TABLE DATA; Schema: public; Owner: -
---
-
+-- x_branch_license_class
 INSERT INTO public.x_branch_license_class (id, branch_id, license_class_id, created_at, price_lkr, created_by, updated_by, updated_at, school_id) VALUES
 	('0a274d82-ebea-4a74-943f-c464116f3a4b', '30000000-0000-0000-0000-000000000002', 'dcffe559-f09a-4bc2-b2de-01f3e2728fc6', '2026-08-27 14:50:12.367369', 17500.00, 'system', 'system', '2026-08-27 14:50:12.861183', '20000000-0000-0000-0000-000000000001'),
 	('5a144e72-f883-431e-b134-ca17bcc22eec', '30000000-0000-0000-0000-000000000001', 'dcffe559-f09a-4bc2-b2de-01f3e2728fc6', '2026-08-27 14:50:12.367369', 18000.00, 'system', 'system', '2026-08-27 14:50:12.861183', '20000000-0000-0000-0000-000000000001'),
@@ -154,15 +66,4 @@ INSERT INTO public.x_branch_license_class (id, branch_id, license_class_id, crea
 	('8fefa01e-4932-465c-8bb2-f2d06990ba51', '30000000-0000-0000-0000-000000000002', 'b619bab6-1c1a-4fc5-8f01-3c2e0dfa018e', '2026-08-27 14:50:12.367369', 22000.00, 'system', 'system', '2026-08-27 14:50:12.861183', '20000000-0000-0000-0000-000000000001'),
 	('d5eba66f-eed1-498a-8e58-436dfb9de0f1', '30000000-0000-0000-0000-000000000002', '87278e0b-7b25-4860-ae58-29c32be0b6ed', '2026-08-27 14:50:12.367369', 65000.00, 'system', 'system', '2026-08-27 14:50:12.861183', '20000000-0000-0000-0000-000000000001') ON CONFLICT DO NOTHING;
 
-
---
--- Data for Name: x_role_permission; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
-
---
--- PostgreSQL database dump complete
---
-
-\unrestrict o5ug9gdFm9ersLxQc5y0cOhDnHGbDPFtdrWwadowTo4Gfe66mtWYEvQCLjJJlpH
+COMMIT;
