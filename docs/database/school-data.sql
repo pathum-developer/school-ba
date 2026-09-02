@@ -90,4 +90,34 @@ SET resource = EXCLUDED.resource,
 	updated_at = now(),
 	updated_by = 'system';
 
+-- m_role
+-- One school super admin role per school. m_role is school-owned, so a SCHOOL scoped
+-- row must name its school; there is no shared template role. is_system marks it as
+-- provisioned by migration, so a school administrator cannot weaken or delete the
+-- role that grants their own access.
+INSERT INTO public.m_role (scope_type, school_id, branch_id, assignable_to, code, name, description, is_system, is_assignable)
+SELECT 'SCHOOL', school.id, NULL, 'STAFF', 'school-super-admin', 'School Super Admin',
+	'Full administrative access within one school', true, true
+FROM public.m_school school
+ON CONFLICT ON CONSTRAINT uk_role_code_per_owner DO UPDATE
+SET name = EXCLUDED.name,
+	description = EXCLUDED.description,
+	is_system = EXCLUDED.is_system,
+	is_assignable = EXCLUDED.is_assignable,
+	updated_at = now(),
+	updated_by = 'system';
+
+-- x_role_permission
+-- Every permission a school-scoped role is allowed to hold: capped at SCHOOL or
+-- BRANCH, never PLATFORM. Selected rather than listed so the ceiling rule cannot be
+-- got wrong, at the cost of granting any later permission to this role on re-run.
+INSERT INTO public.x_role_permission (role_id, role_scope_type, permission_id, permission_max_scope_type)
+SELECT role.id, role.scope_type, permission.id, permission.max_scope_type
+FROM public.m_role role
+CROSS JOIN public.r_permission permission
+WHERE role.code = 'school-super-admin'
+	AND role.scope_type = 'SCHOOL'
+	AND permission.max_scope_type IN ('SCHOOL', 'BRANCH')
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
 COMMIT;

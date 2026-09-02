@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 028-seed-school-super-admin-role
+      author: codex
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: ../sql/028-seed-school-super-admin-role.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false

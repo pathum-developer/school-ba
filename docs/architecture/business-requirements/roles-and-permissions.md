@@ -76,5 +76,36 @@ Why the two ceilings differ:
 
 ## Roles
 
-No roles are defined yet. When they are, record here which permissions each carries
-and at which scope, and keep this table aligned with the seed data.
+### School Super Admin
+
+`school-super-admin`, scope `SCHOOL`, audience `STAFF`, system role.
+
+Full administrative access within one school. Holds every permission a school-scoped
+role is allowed to hold, which today is all six.
+
+There is **one role row per school**, not one shared role. Roles are school-owned, so
+a school-scoped row must name its school, and an unowned role would break the foreign
+key chain that ties a grant to the role it names. A school created later therefore
+needs its own copy, provisioned when the school is created.
+
+It is marked as a system role, so a school administrator cannot weaken or delete the
+role that grants their own access.
+
+What it deliberately cannot do:
+
+- Nothing at platform scope. The ceiling rule keeps a school-scoped role away from
+  any permission capped at `PLATFORM`, so "super admin" means super within one
+  school, never across the platform.
+- Nothing at another school. The scope names one school, and every grant made from
+  this role is bounded by it.
+
+The permission set is selected by ceiling rather than listed by code, so a permission
+added later is granted to every school super admin on the next run. That is bounded
+by the ceiling, but it means the grant is implicit. Replace the select with a literal
+list if each addition should be a deliberate decision.
+
+### Still to define
+
+No branch-scoped or platform-scoped roles exist yet. When they are added, record here
+which permissions each carries and at which scope, and keep this section aligned with
+the seed data.
