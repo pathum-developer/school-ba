@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 030-rename-app-user-to-identity
+      author: codex
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: ../sql/030-rename-app-user-to-identity.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false

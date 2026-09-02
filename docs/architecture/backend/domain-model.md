@@ -158,11 +158,14 @@ Constraints:
 
 ## Authentication Model
 
-### AppUser
+### Identity
 
 One login record. Platform operators, school staff, and learners all authenticate
-through it. Every login points at exactly one person record; `m_app_user` itself holds
+through it. Every login points at exactly one person record; the table itself holds
 credentials and account state, never the person's details.
+
+Named `m_identity` rather than `m_app_user`, because the users of this system are the
+staff, learners and platform operators. This row is their login, not the person.
 
 - `id`: internal UUID primary key.
 - `schoolId`: owning school, or absent for a platform operator.

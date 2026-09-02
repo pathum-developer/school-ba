@@ -192,7 +192,7 @@ CREATE TABLE public.m_school_contact_number (
     CONSTRAINT fk_school_contact_number_school FOREIGN KEY (school_id) REFERENCES public.m_school(id) ON DELETE CASCADE
 );
 
--- A school-owned employment record. Kept separate from m_app_user because a person
+-- A school-owned employment record. Kept separate from m_identity because a person
 -- is not a login: a yard assistant can be on the payroll and assigned to a branch
 -- with no system access at all.
 CREATE TABLE public.m_staff (
@@ -308,7 +308,7 @@ CREATE TABLE public.m_learner (
 -- Every identity that can sign in. Holds credentials and account state only; who the
 -- person is lives in m_platform_operator, m_staff or m_learner, and exactly one of
 -- those links is set.
-CREATE TABLE public.m_app_user (
+CREATE TABLE public.m_identity (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     school_id uuid,                                                                         -- NULL only for a platform operator
     platform_operator_id uuid,                                                              -- set only for a platform login
@@ -330,32 +330,32 @@ CREATE TABLE public.m_app_user (
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
-    CONSTRAINT ck_app_user_active_needs_password CHECK ((((status)::text <> 'ACTIVE'::text) OR (password_hash IS NOT NULL))),
-    CONSTRAINT ck_app_user_authorization_version_non_negative CHECK ((authorization_version >= 0)),
-    CONSTRAINT ck_app_user_display_name_not_blank CHECK ((btrim((display_name)::text) <> ''::text)),
-    CONSTRAINT ck_app_user_failed_attempt_count_non_negative CHECK ((failed_attempt_count >= 0)),
-    CONSTRAINT ck_app_user_learner_needs_school CHECK (((learner_id IS NULL) OR (school_id IS NOT NULL))),
-    CONSTRAINT ck_app_user_operator_has_no_school CHECK (((platform_operator_id IS NULL) OR (school_id IS NULL))),
-    CONSTRAINT ck_app_user_password_hash_not_blank CHECK (((password_hash IS NULL) OR (btrim((password_hash)::text) <> ''::text))),
-    CONSTRAINT ck_app_user_phone_e164_format CHECK (((phone_number_e164)::text ~ '^\+[1-9][0-9]{7,14}$'::text)),
-    CONSTRAINT ck_app_user_phone_format CHECK (((phone_number)::text ~ '^[0-9 +()-]+$'::text)),
-    CONSTRAINT ck_app_user_single_person CHECK ((((((platform_operator_id IS NOT NULL))::integer + ((staff_id IS NOT NULL))::integer) + ((learner_id IS NOT NULL))::integer) = 1)),
-    CONSTRAINT ck_app_user_staff_needs_school CHECK (((staff_id IS NULL) OR (school_id IS NOT NULL))),
-    CONSTRAINT ck_app_user_status CHECK (((status)::text = ANY ((ARRAY['PENDING_ACTIVATION'::character varying, 'ACTIVE'::character varying, 'SUSPENDED'::character varying, 'LOCKED'::character varying, 'DISABLED'::character varying])::text[]))),
-    CONSTRAINT ck_app_user_timestamps CHECK ((updated_at >= created_at)),
-    CONSTRAINT ck_app_user_username_format CHECK (((username)::text ~ '^[a-z0-9]+(?:[._-][a-z0-9]+)*$'::text)),
-    CONSTRAINT pk_app_user PRIMARY KEY (id),
-    CONSTRAINT uk_app_user_id_is_staff UNIQUE (id, is_staff),
-    CONSTRAINT uk_app_user_id_school UNIQUE (id, school_id),
-    CONSTRAINT uk_app_user_id_staff UNIQUE (id, staff_id),
-    CONSTRAINT uk_app_user_learner UNIQUE (learner_id),
-    CONSTRAINT uk_app_user_platform_operator UNIQUE (platform_operator_id),
-    CONSTRAINT uk_app_user_staff UNIQUE (staff_id),
-    CONSTRAINT uk_app_user_username UNIQUE (username),
-    CONSTRAINT fk_app_user_learner FOREIGN KEY (learner_id, school_id) REFERENCES public.m_learner(id, school_id) ON DELETE RESTRICT,
-    CONSTRAINT fk_app_user_platform_operator FOREIGN KEY (platform_operator_id) REFERENCES public.m_platform_operator(id) ON DELETE RESTRICT,
-    CONSTRAINT fk_app_user_school FOREIGN KEY (school_id) REFERENCES public.m_school(id) ON DELETE RESTRICT,
-    CONSTRAINT fk_app_user_staff FOREIGN KEY (staff_id, school_id) REFERENCES public.m_staff(id, school_id) ON DELETE RESTRICT
+    CONSTRAINT ck_identity_active_needs_password CHECK ((((status)::text <> 'ACTIVE'::text) OR (password_hash IS NOT NULL))),
+    CONSTRAINT ck_identity_authorization_version_non_negative CHECK ((authorization_version >= 0)),
+    CONSTRAINT ck_identity_display_name_not_blank CHECK ((btrim((display_name)::text) <> ''::text)),
+    CONSTRAINT ck_identity_failed_attempt_count_non_negative CHECK ((failed_attempt_count >= 0)),
+    CONSTRAINT ck_identity_learner_needs_school CHECK (((learner_id IS NULL) OR (school_id IS NOT NULL))),
+    CONSTRAINT ck_identity_operator_has_no_school CHECK (((platform_operator_id IS NULL) OR (school_id IS NULL))),
+    CONSTRAINT ck_identity_password_hash_not_blank CHECK (((password_hash IS NULL) OR (btrim((password_hash)::text) <> ''::text))),
+    CONSTRAINT ck_identity_phone_e164_format CHECK (((phone_number_e164)::text ~ '^\+[1-9][0-9]{7,14}$'::text)),
+    CONSTRAINT ck_identity_phone_format CHECK (((phone_number)::text ~ '^[0-9 +()-]+$'::text)),
+    CONSTRAINT ck_identity_single_person CHECK ((((((platform_operator_id IS NOT NULL))::integer + ((staff_id IS NOT NULL))::integer) + ((learner_id IS NOT NULL))::integer) = 1)),
+    CONSTRAINT ck_identity_staff_needs_school CHECK (((staff_id IS NULL) OR (school_id IS NOT NULL))),
+    CONSTRAINT ck_identity_status CHECK (((status)::text = ANY ((ARRAY['PENDING_ACTIVATION'::character varying, 'ACTIVE'::character varying, 'SUSPENDED'::character varying, 'LOCKED'::character varying, 'DISABLED'::character varying])::text[]))),
+    CONSTRAINT ck_identity_timestamps CHECK ((updated_at >= created_at)),
+    CONSTRAINT ck_identity_username_format CHECK (((username)::text ~ '^[a-z0-9]+(?:[._-][a-z0-9]+)*$'::text)),
+    CONSTRAINT pk_identity PRIMARY KEY (id),
+    CONSTRAINT uk_identity_id_is_staff UNIQUE (id, is_staff),
+    CONSTRAINT uk_identity_id_school UNIQUE (id, school_id),
+    CONSTRAINT uk_identity_id_staff UNIQUE (id, staff_id),
+    CONSTRAINT uk_identity_learner UNIQUE (learner_id),
+    CONSTRAINT uk_identity_platform_operator UNIQUE (platform_operator_id),
+    CONSTRAINT uk_identity_staff UNIQUE (staff_id),
+    CONSTRAINT uk_identity_username UNIQUE (username),
+    CONSTRAINT fk_identity_learner FOREIGN KEY (learner_id, school_id) REFERENCES public.m_learner(id, school_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_identity_platform_operator FOREIGN KEY (platform_operator_id) REFERENCES public.m_platform_operator(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_identity_school FOREIGN KEY (school_id) REFERENCES public.m_school(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_identity_staff FOREIGN KEY (staff_id, school_id) REFERENCES public.m_staff(id, school_id) ON DELETE RESTRICT
 );
 
 -- A named bundle of permissions owned by exactly one scope. There are no unowned
@@ -462,7 +462,7 @@ CREATE TABLE public.x_staff_branch_membership (
 -- Rotating refresh tokens. Access tokens are short-lived and never stored.
 CREATE TABLE public.t_refresh_token (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,                                         -- the account this token authenticates
+    identity_id uuid NOT NULL,                                         -- the account this token authenticates
     token_hash character varying(64) NOT NULL,                     -- sha-256 hex; the token itself is never stored
     jti uuid NOT NULL,                                             -- matches the JWT claim, for audit correlation
     issued_at timestamp without time zone DEFAULT now() NOT NULL,
@@ -478,20 +478,20 @@ CREATE TABLE public.t_refresh_token (
     CONSTRAINT uk_refresh_token_hash UNIQUE (token_hash),
     CONSTRAINT uk_refresh_token_jti UNIQUE (jti),
     CONSTRAINT fk_refresh_token_replaced_by FOREIGN KEY (replaced_by_id) REFERENCES public.t_refresh_token(id) ON DELETE SET NULL,
-    CONSTRAINT fk_refresh_token_user FOREIGN KEY (user_id) REFERENCES public.m_app_user(id) ON DELETE CASCADE
+    CONSTRAINT fk_refresh_token_identity FOREIGN KEY (identity_id) REFERENCES public.m_identity(id) ON DELETE CASCADE
 );
 
 -- The scoped grant: this account holds this role, here.
-CREATE TABLE public.t_user_role_assignment (
+CREATE TABLE public.t_identity_role_assignment (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,                                                            -- the account holding the grant
+    identity_id uuid NOT NULL,                                                            -- the account holding the grant
     role_id uuid NOT NULL,
     scope_type character varying(32) NOT NULL,                                        -- mirrors m_role.scope_type
     school_id uuid,                                                                   -- NULL only when PLATFORM
     branch_id uuid,                                                                   -- NOT NULL only when BRANCH
     assignable_to character varying(32) DEFAULT 'STAFF'::character varying NOT NULL,  -- mirrors m_role.assignable_to
-    is_staff boolean DEFAULT true NOT NULL,                                           -- mirrors m_app_user.is_staff
-    staff_id uuid,                                                                    -- mirrors m_app_user.staff_id; required for a branch grant
+    is_staff boolean DEFAULT true NOT NULL,                                           -- mirrors m_identity.is_staff
+    staff_id uuid,                                                                    -- mirrors m_identity.staff_id; required for a branch grant
     granted_by uuid NOT NULL,                                                         -- a real FK, not the varchar audit column
     granted_at timestamp without time zone DEFAULT now() NOT NULL,                    -- when the grant was made
     expires_at timestamp without time zone,                                           -- NULL means the grant does not expire
@@ -499,46 +499,46 @@ CREATE TABLE public.t_user_role_assignment (
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
-    CONSTRAINT ck_user_role_assignment_assignable_to CHECK (((assignable_to)::text = ANY ((ARRAY['STAFF'::character varying, 'LEARNER'::character varying])::text[]))),
-    CONSTRAINT ck_user_role_assignment_audience CHECK ((((assignable_to)::text = 'STAFF'::text) = is_staff)),
-    CONSTRAINT ck_user_role_assignment_branch_needs_staff CHECK ((((scope_type)::text <> 'BRANCH'::text) OR (staff_id IS NOT NULL))),
-    CONSTRAINT ck_user_role_assignment_branch_shape CHECK ((((scope_type)::text = 'BRANCH'::text) = (branch_id IS NOT NULL))),
-    CONSTRAINT ck_user_role_assignment_expiry CHECK (((expires_at IS NULL) OR (expires_at > granted_at))),
-    CONSTRAINT ck_user_role_assignment_school_shape CHECK ((((scope_type)::text = 'PLATFORM'::text) = (school_id IS NULL))),
-    CONSTRAINT ck_user_role_assignment_scope_type CHECK (((scope_type)::text = ANY ((ARRAY['PLATFORM'::character varying, 'SCHOOL'::character varying, 'BRANCH'::character varying])::text[]))),
-    CONSTRAINT ck_user_role_assignment_timestamps CHECK ((updated_at >= created_at)),
-    CONSTRAINT pk_user_role_assignment PRIMARY KEY (id),
-    CONSTRAINT uk_user_role_assignment_grant UNIQUE NULLS NOT DISTINCT (user_id, role_id, branch_id),
-    CONSTRAINT fk_user_role_assignment_audience FOREIGN KEY (role_id, assignable_to) REFERENCES public.m_role(id, assignable_to),
-    CONSTRAINT fk_user_role_assignment_granted_by FOREIGN KEY (granted_by) REFERENCES public.m_app_user(id) ON DELETE RESTRICT,
-    CONSTRAINT fk_user_role_assignment_is_staff FOREIGN KEY (user_id, is_staff) REFERENCES public.m_app_user(id, is_staff),
-    CONSTRAINT fk_user_role_assignment_membership FOREIGN KEY (staff_id, branch_id) REFERENCES public.x_staff_branch_membership(staff_id, branch_id) ON DELETE CASCADE,
-    CONSTRAINT fk_user_role_assignment_role_branch FOREIGN KEY (role_id, branch_id) REFERENCES public.m_role(id, branch_id) ON DELETE CASCADE,
-    CONSTRAINT fk_user_role_assignment_role_school FOREIGN KEY (role_id, school_id) REFERENCES public.m_role(id, school_id) ON DELETE CASCADE,
-    CONSTRAINT fk_user_role_assignment_role_scope FOREIGN KEY (role_id, scope_type) REFERENCES public.m_role(id, scope_type) ON DELETE CASCADE,
-    CONSTRAINT fk_user_role_assignment_staff FOREIGN KEY (user_id, staff_id) REFERENCES public.m_app_user(id, staff_id),
-    CONSTRAINT fk_user_role_assignment_user FOREIGN KEY (user_id) REFERENCES public.m_app_user(id) ON DELETE CASCADE
+    CONSTRAINT ck_identity_role_assignment_assignable_to CHECK (((assignable_to)::text = ANY ((ARRAY['STAFF'::character varying, 'LEARNER'::character varying])::text[]))),
+    CONSTRAINT ck_identity_role_assignment_audience CHECK ((((assignable_to)::text = 'STAFF'::text) = is_staff)),
+    CONSTRAINT ck_identity_role_assignment_branch_needs_staff CHECK ((((scope_type)::text <> 'BRANCH'::text) OR (staff_id IS NOT NULL))),
+    CONSTRAINT ck_identity_role_assignment_branch_shape CHECK ((((scope_type)::text = 'BRANCH'::text) = (branch_id IS NOT NULL))),
+    CONSTRAINT ck_identity_role_assignment_expiry CHECK (((expires_at IS NULL) OR (expires_at > granted_at))),
+    CONSTRAINT ck_identity_role_assignment_school_shape CHECK ((((scope_type)::text = 'PLATFORM'::text) = (school_id IS NULL))),
+    CONSTRAINT ck_identity_role_assignment_scope_type CHECK (((scope_type)::text = ANY ((ARRAY['PLATFORM'::character varying, 'SCHOOL'::character varying, 'BRANCH'::character varying])::text[]))),
+    CONSTRAINT ck_identity_role_assignment_timestamps CHECK ((updated_at >= created_at)),
+    CONSTRAINT pk_identity_role_assignment PRIMARY KEY (id),
+    CONSTRAINT uk_identity_role_assignment_grant UNIQUE NULLS NOT DISTINCT (identity_id, role_id, branch_id),
+    CONSTRAINT fk_identity_role_assignment_audience FOREIGN KEY (role_id, assignable_to) REFERENCES public.m_role(id, assignable_to),
+    CONSTRAINT fk_identity_role_assignment_granted_by FOREIGN KEY (granted_by) REFERENCES public.m_identity(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_identity_role_assignment_is_staff FOREIGN KEY (identity_id, is_staff) REFERENCES public.m_identity(id, is_staff),
+    CONSTRAINT fk_identity_role_assignment_membership FOREIGN KEY (staff_id, branch_id) REFERENCES public.x_staff_branch_membership(staff_id, branch_id) ON DELETE CASCADE,
+    CONSTRAINT fk_identity_role_assignment_role_branch FOREIGN KEY (role_id, branch_id) REFERENCES public.m_role(id, branch_id) ON DELETE CASCADE,
+    CONSTRAINT fk_identity_role_assignment_role_school FOREIGN KEY (role_id, school_id) REFERENCES public.m_role(id, school_id) ON DELETE CASCADE,
+    CONSTRAINT fk_identity_role_assignment_role_scope FOREIGN KEY (role_id, scope_type) REFERENCES public.m_role(id, scope_type) ON DELETE CASCADE,
+    CONSTRAINT fk_identity_role_assignment_staff FOREIGN KEY (identity_id, staff_id) REFERENCES public.m_identity(id, staff_id),
+    CONSTRAINT fk_identity_role_assignment_identity FOREIGN KEY (identity_id) REFERENCES public.m_identity(id) ON DELETE CASCADE
 );
 
 -- Indexes
 
-CREATE INDEX ix_app_user_learner ON public.m_app_user USING btree (learner_id) WHERE (learner_id IS NOT NULL);
-CREATE INDEX ix_app_user_school ON public.m_app_user USING btree (school_id);
-CREATE INDEX ix_app_user_staff_by_school ON public.m_app_user USING btree (school_id) WHERE (learner_id IS NULL);
+CREATE INDEX ix_identity_learner ON public.m_identity USING btree (learner_id) WHERE (learner_id IS NOT NULL);
+CREATE INDEX ix_identity_school ON public.m_identity USING btree (school_id);
+CREATE INDEX ix_identity_staff_by_school ON public.m_identity USING btree (school_id) WHERE (learner_id IS NULL);
 CREATE INDEX ix_branch_contact_number_school_branch ON public.m_branch_contact_number USING btree (school_id, branch_id);
 CREATE INDEX ix_branch_license_class_school_branch ON public.x_branch_license_class USING btree (school_id, branch_id);
 CREATE INDEX ix_learner_school_active ON public.m_learner USING btree (school_id) WHERE ((status)::text = ANY ((ARRAY['ENROLLED'::character varying, 'ACTIVE'::character varying])::text[]));
 CREATE INDEX ix_learner_school_branch ON public.m_learner USING btree (school_id, current_branch_id);
 CREATE INDEX ix_platform_operator_employed ON public.m_platform_operator USING btree (employment_status) WHERE ((employment_status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'ON_LEAVE'::character varying])::text[]));
-CREATE INDEX ix_refresh_token_user_active ON public.t_refresh_token USING btree (user_id) WHERE (revoked_at IS NULL);
+CREATE INDEX ix_refresh_token_identity_active ON public.t_refresh_token USING btree (identity_id) WHERE (revoked_at IS NULL);
 CREATE INDEX ix_role_branch ON public.m_role USING btree (branch_id);
 CREATE INDEX ix_role_permission_permission ON public.x_role_permission USING btree (permission_id);
 CREATE INDEX ix_role_school ON public.m_role USING btree (school_id);
 CREATE INDEX ix_staff_branch_membership_branch ON public.x_staff_branch_membership USING btree (branch_id);
 CREATE INDEX ix_staff_school_employed ON public.m_staff USING btree (school_id) WHERE ((employment_status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'ON_LEAVE'::character varying])::text[]));
-CREATE INDEX ix_user_role_assignment_role ON public.t_user_role_assignment USING btree (role_id);
-CREATE INDEX ix_user_role_assignment_user ON public.t_user_role_assignment USING btree (user_id);
-CREATE UNIQUE INDEX ux_app_user_school_phone ON public.m_app_user USING btree (COALESCE(school_id, '00000000-0000-0000-0000-000000000000'::uuid), phone_number_e164);
+CREATE INDEX ix_identity_role_assignment_role ON public.t_identity_role_assignment USING btree (role_id);
+CREATE INDEX ix_identity_role_assignment_identity ON public.t_identity_role_assignment USING btree (identity_id);
+CREATE UNIQUE INDEX ux_identity_school_phone ON public.m_identity USING btree (COALESCE(school_id, '00000000-0000-0000-0000-000000000000'::uuid), phone_number_e164);
 CREATE UNIQUE INDEX ux_branch_contact_number_primary_per_branch ON public.m_branch_contact_number USING btree (branch_id) WHERE is_primary;
 CREATE UNIQUE INDEX ux_branch_one_head_office_per_school ON public.m_branch USING btree (school_id) WHERE is_head_office;
 CREATE UNIQUE INDEX ux_school_contact_number_primary_per_school ON public.m_school_contact_number USING btree (school_id) WHERE is_primary;
@@ -550,10 +550,10 @@ CREATE FUNCTION public.auth_bump_version_by_role() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    UPDATE public.m_app_user
+    UPDATE public.m_identity
     SET authorization_version = authorization_version + 1
-    WHERE id IN (SELECT assignment.user_id
-                 FROM public.t_user_role_assignment assignment
+    WHERE id IN (SELECT assignment.identity_id
+                 FROM public.t_identity_role_assignment assignment
                  WHERE assignment.role_id IN (SELECT role_id FROM changed_row));
     RETURN NULL;
 END
@@ -563,10 +563,10 @@ CREATE FUNCTION public.auth_bump_version_by_role_change() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    UPDATE public.m_app_user
+    UPDATE public.m_identity
     SET authorization_version = authorization_version + 1
-    WHERE id IN (SELECT assignment.user_id
-                 FROM public.t_user_role_assignment assignment
+    WHERE id IN (SELECT assignment.identity_id
+                 FROM public.t_identity_role_assignment assignment
                  WHERE assignment.role_id IN (SELECT role_id FROM old_row
                                               UNION
                                               SELECT role_id FROM new_row));
@@ -574,26 +574,26 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION public.auth_bump_version_by_user() RETURNS trigger
+CREATE FUNCTION public.auth_bump_version_by_identity() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    UPDATE public.m_app_user
+    UPDATE public.m_identity
     SET authorization_version = authorization_version + 1
-    WHERE id IN (SELECT user_id FROM changed_row);
+    WHERE id IN (SELECT identity_id FROM changed_row);
     RETURN NULL;
 END
 $$;
 
-CREATE FUNCTION public.auth_bump_version_by_user_change() RETURNS trigger
+CREATE FUNCTION public.auth_bump_version_by_identity_change() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    UPDATE public.m_app_user
+    UPDATE public.m_identity
     SET authorization_version = authorization_version + 1
-    WHERE id IN (SELECT user_id FROM old_row
+    WHERE id IN (SELECT identity_id FROM old_row
                  UNION
-                 SELECT user_id FROM new_row);
+                 SELECT identity_id FROM new_row);
     RETURN NULL;
 END
 $$;
@@ -602,7 +602,7 @@ CREATE FUNCTION public.auth_disable_login_for_inactive_learner() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    UPDATE public.m_app_user
+    UPDATE public.m_identity
     SET status = 'DISABLED',
         authorization_version = authorization_version + 1
     WHERE learner_id IN (SELECT id FROM new_row WHERE status NOT IN ('ENROLLED', 'ACTIVE'))
@@ -615,7 +615,7 @@ CREATE FUNCTION public.auth_disable_login_for_inactive_operator() RETURNS trigge
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    UPDATE public.m_app_user
+    UPDATE public.m_identity
     SET status = 'DISABLED',
         authorization_version = authorization_version + 1
     WHERE platform_operator_id IN (SELECT id FROM new_row WHERE employment_status NOT IN ('ACTIVE', 'ON_LEAVE'))
@@ -628,7 +628,7 @@ CREATE FUNCTION public.auth_disable_login_for_inactive_staff() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    UPDATE public.m_app_user
+    UPDATE public.m_identity
     SET status = 'DISABLED',
         authorization_version = authorization_version + 1
     WHERE staff_id IN (SELECT id FROM new_row WHERE employment_status NOT IN ('ACTIVE', 'ON_LEAVE'))
@@ -686,8 +686,8 @@ CREATE TRIGGER tr_role_permission_delete_bump_version AFTER DELETE ON public.x_r
 CREATE TRIGGER tr_role_permission_insert_bump_version AFTER INSERT ON public.x_role_permission REFERENCING NEW TABLE AS changed_row FOR EACH STATEMENT EXECUTE FUNCTION public.auth_bump_version_by_role();
 CREATE TRIGGER tr_role_permission_update_bump_version AFTER UPDATE ON public.x_role_permission REFERENCING OLD TABLE AS old_row NEW TABLE AS new_row FOR EACH STATEMENT EXECUTE FUNCTION public.auth_bump_version_by_role_change();
 CREATE TRIGGER tr_staff_status_disables_login AFTER UPDATE ON public.m_staff REFERENCING NEW TABLE AS new_row FOR EACH STATEMENT EXECUTE FUNCTION public.auth_disable_login_for_inactive_staff();
-CREATE TRIGGER tr_user_role_assignment_delete_bump_version AFTER DELETE ON public.t_user_role_assignment REFERENCING OLD TABLE AS changed_row FOR EACH STATEMENT EXECUTE FUNCTION public.auth_bump_version_by_user();
-CREATE TRIGGER tr_user_role_assignment_insert_bump_version AFTER INSERT ON public.t_user_role_assignment REFERENCING NEW TABLE AS changed_row FOR EACH STATEMENT EXECUTE FUNCTION public.auth_bump_version_by_user();
-CREATE TRIGGER tr_user_role_assignment_update_bump_version AFTER UPDATE ON public.t_user_role_assignment REFERENCING OLD TABLE AS old_row NEW TABLE AS new_row FOR EACH STATEMENT EXECUTE FUNCTION public.auth_bump_version_by_user_change();
+CREATE TRIGGER tr_identity_role_assignment_delete_bump_version AFTER DELETE ON public.t_identity_role_assignment REFERENCING OLD TABLE AS changed_row FOR EACH STATEMENT EXECUTE FUNCTION public.auth_bump_version_by_identity();
+CREATE TRIGGER tr_identity_role_assignment_insert_bump_version AFTER INSERT ON public.t_identity_role_assignment REFERENCING NEW TABLE AS changed_row FOR EACH STATEMENT EXECUTE FUNCTION public.auth_bump_version_by_identity();
+CREATE TRIGGER tr_identity_role_assignment_update_bump_version AFTER UPDATE ON public.t_identity_role_assignment REFERENCING OLD TABLE AS old_row NEW TABLE AS new_row FOR EACH STATEMENT EXECUTE FUNCTION public.auth_bump_version_by_identity_change();
 
 COMMIT;

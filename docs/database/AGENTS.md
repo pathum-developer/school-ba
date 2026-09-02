@@ -11,7 +11,7 @@ be designed deliberately, with database-level validation wherever PostgreSQL can
 enforce it.
 
 - Prefix physical table names by table role:
-  - `m_` for master/main domain tables, for example `m_school`, `m_branch`, `m_learner`, `m_staff`, `m_app_user`, and `m_role`.
+  - `m_` for master/main domain tables, for example `m_school`, `m_branch`, `m_learner`, `m_staff`, `m_identity`, and `m_role`.
   - `r_` for stable reference/catalogue tables, for example `r_license_class` and `r_permission`.
   - `x_` for cross-reference, join, and assignment link tables, for example `x_role_permission`, `x_staff_branch_membership`, and `x_branch_license_class`.
   - `t_` for transactional, workflow, session, token, or event tables, for example `t_user_role_assignment`, `t_refresh_token`, and `t_learner_branch_transfer`.
