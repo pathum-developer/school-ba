@@ -32,7 +32,7 @@ import org.hibernate.annotations.DynamicInsert;
 
 @Entity
 @Table(
-        name = "branch",
+        name = "m_branch",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_branch_school_code",
                 columnNames = {"school_id", "code"}

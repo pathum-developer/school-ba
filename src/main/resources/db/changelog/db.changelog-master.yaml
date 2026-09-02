@@ -1,3 +1,9 @@
 databaseChangeLog:
   - include:
       file: db/changelog/changes/001-create-school-branch-license-schema.yaml
+  - include:
+      file: db/changelog/changes/002-create-platform-learner-staff-auth-rbac-schema.yaml
+  - include:
+      file: db/changelog/changes/003-harden-legacy-tables-for-multi-tenant-school-management.yaml
+  - include:
+      file: db/changelog/changes/004-rename-tables-with-prefix-convention.yaml

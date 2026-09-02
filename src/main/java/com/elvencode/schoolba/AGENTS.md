@@ -53,6 +53,7 @@ config/
 - Put authentication and authorization code under `auth`.
 - Put reusable helpers, shared DTOs, exceptions, mappers, and utilities under `common`.
 - Put Spring configuration classes under `config`.
+- Map JPA entities to the prefixed physical table names defined in `docs/database/AGENTS.md`; do not leak those prefixes into Java domain type names.
 - Use singular package names, for example `learner`, not `learners`.
 - Use lowercase package names.
 - Keep controller, service, repository, entity, dto, mapper, and enums separated.

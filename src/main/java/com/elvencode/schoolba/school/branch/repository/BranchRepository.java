@@ -35,8 +35,8 @@ public interface BranchRepository extends JpaRepository<Branch, UUID> {
     @Query(
             value = """
                     select branch.*
-                    from branch branch
-                    join school school on school.id = branch.school_id
+                    from m_branch branch
+                    join m_school school on school.id = branch.school_id
                     where school.id = :schoolId
                             and branch.code = :code
                     """,

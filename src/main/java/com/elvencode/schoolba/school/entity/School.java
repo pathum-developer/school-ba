@@ -17,7 +17,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "school")
+@Table(name = "m_school")
 @DynamicInsert
 @Getter
 @Setter

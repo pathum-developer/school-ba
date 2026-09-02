@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 025-rename-tables-with-prefix-convention
+      author: codex
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: ../sql/025-rename-tables-with-prefix-convention.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false

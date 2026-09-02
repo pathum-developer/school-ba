@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: 020-create-platform-operator-schema
+      author: codex
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: ../sql/020-platform-schema.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: 021-create-learner-schema
+      author: codex
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: ../sql/021-learner-schema.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: 022-create-staff-schema
+      author: codex
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: ../sql/022-staff-schema.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: 023-create-auth-rbac-schema
+      author: codex
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: ../sql/023-auth-rbac-schema.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false

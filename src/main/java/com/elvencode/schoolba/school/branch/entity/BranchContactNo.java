@@ -32,7 +32,7 @@ import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(
-        name = "branch_contact_number",
+        name = "m_branch_contact_number",
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_branch_contact_number_branch_phone",

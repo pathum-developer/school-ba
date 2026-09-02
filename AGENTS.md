@@ -121,6 +121,11 @@ Treat those documents as the preferred source of product intent. If implementati
 When the task involves database schema, migrations, seed data, or database-backed
 domain constraints, also follow [docs/database/AGENTS.md](docs/database/AGENTS.md).
 
+Database table names use role prefixes. Main domain tables use `m_`, reference
+tables use `r_`, cross-reference tables use `x_`, transactional tables use `t_`,
+history tables use `h_`, technical log tables use `log_`, and staging/import
+tables use `tmp_`.
+
 ## Verification
 
 After changing Java code or database migrations, run:

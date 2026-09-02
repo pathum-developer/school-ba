@@ -111,7 +111,7 @@ What it misses, and why it is a backstop rather than the mechanism:
 
 Why the rule cannot be a constraint in general:
 
-- `platform_operator`, `staff`, and `learner` are independent tables with unrelated
+- `m_platform_operator`, `m_staff`, and `m_learner` are independent tables with unrelated
   primary keys. There is no shared person key for a constraint to compare, so the
   database has no way to tell that two rows describe the same human.
 - The rule is cross-table exclusivity, which SQL cannot express. A trigger checking
@@ -161,7 +161,7 @@ Constraints:
 ### AppUser
 
 One login record. Platform operators, school staff, and learners all authenticate
-through it. Every login points at exactly one person record; `app_user` itself holds
+through it. Every login points at exactly one person record; `m_app_user` itself holds
 credentials and account state, never the person's details.
 
 - `id`: internal UUID primary key.

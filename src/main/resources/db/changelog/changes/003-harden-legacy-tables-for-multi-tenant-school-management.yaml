@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 024-harden-tenant-owned-legacy-tables
+      author: codex
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: ../sql/024-harden-tenant-owned-legacy-tables.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
