@@ -7,6 +7,17 @@
 - A branch must belong to exactly one school.
 - Data owned by one school must not be mixed with data owned by another school.
 
+## Person Kinds
+
+- The system knows three kinds of person: a platform operator, a member of school staff, and a learner.
+- A person is exactly one kind. The kinds are mutually exclusive.
+- A member of school staff must not also be recorded as a learner.
+- A platform operator must not also be recorded as school staff, or as a learner.
+- Being the same kind more than once is allowed. A learner may enrol at more than one school, and a staff member may be employed by more than one school. What is forbidden is being two different kinds.
+- This is a rule about people, not about logins. A login already belongs to exactly one person record; this rule additionally forbids one person from holding records of different kinds.
+- The rule is enforced by the application when a person record is created.
+- The database catches part of it: one person cannot hold both a staff login and a learner login at the same school on the same phone number. That is a backstop only. See `docs/architecture/backend/domain-model.md` for what it misses and why the rest cannot be a constraint.
+
 ## Platform Operators
 
 - A platform operator is a person who runs the platform itself, not an employee of any school.
@@ -32,6 +43,8 @@
 - A learner's email address is optional.
 - Where an email address is given, it must be unique within the school.
 - Contact details are not credentials. A learner never signs in with a phone number or an email address.
+- A login carries its own required phone number, used to send one-time codes and password resets. It is normally the same number as the person's contact number, but it is a separate fact and may differ.
+- A login carries no email address, because email is optional for a person and cannot be relied on to reach an account.
 
 ## Learner Portal Access
 

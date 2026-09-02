@@ -32,6 +32,13 @@
 -- Every login points at exactly one of those three person records. app_user itself
 -- holds credentials and account state; who the person is lives in their own table.
 --
+-- A person is meant to be exactly one of those kinds: staff may not also be a
+-- learner, and a platform operator may not also be school staff. That rule is NOT
+-- enforced here. The three person tables have unrelated primary keys, so nothing in
+-- the database can tell that two rows describe the same human. It is an application
+-- rule, and the reasoning and its limits are in
+-- docs/architecture/backend/domain-model.md under person kind exclusivity.
+--
 -- Reference document. The runtime schema is applied by Liquibase under
 -- src/main/resources/db/changelog; keep this file aligned when that changes.
 
@@ -81,7 +88,16 @@ CREATE TABLE IF NOT EXISTS app_user (
     -- deliberately not defined as staff_id IS NOT NULL.
     is_staff boolean GENERATED ALWAYS AS (learner_id IS NULL) STORED,
     username varchar(64) NOT NULL,                        -- the only login identifier, staff and learner alike
-    email varchar(254),                                   -- optional; a learner commonly has none
+    -- The account's authentication channel: where a one-time code or a reset link is
+    -- sent. Required, because it is the only contact this table can rely on. Email
+    -- lives on the person record, where it is optional, so it cannot carry account
+    -- recovery for the many learners who have none.
+    --
+    -- Not the same fact as the person's contact number, even when it holds the same
+    -- value. The person record stays authoritative for contact; this is the number
+    -- the account authenticates with, and it may legitimately differ.
+    phone_number varchar(32) NOT NULL,                    -- as entered
+    phone_number_e164 varchar(16) NOT NULL,               -- normalized, for lookup and messaging
     password_hash varchar(255),                           -- absent until the account is activated
     display_name varchar(160) NOT NULL,
     status varchar(32) DEFAULT 'PENDING_ACTIVATION' NOT NULL,
@@ -123,7 +139,8 @@ CREATE TABLE IF NOT EXISTS app_user (
     CONSTRAINT uk_app_user_username UNIQUE (username),
     CONSTRAINT ck_app_user_status CHECK (status IN ('PENDING_ACTIVATION', 'ACTIVE', 'SUSPENDED', 'LOCKED', 'DISABLED')),
     CONSTRAINT ck_app_user_username_format CHECK (username ~ '^[a-z0-9]+(?:[._-][a-z0-9]+)*$'),
-    CONSTRAINT ck_app_user_email_format CHECK (email IS NULL OR email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'),
+    CONSTRAINT ck_app_user_phone_format CHECK (phone_number ~ '^[0-9 +()-]+$'),
+    CONSTRAINT ck_app_user_phone_e164_format CHECK (phone_number_e164 ~ '^\+[1-9][0-9]{7,14}$'),
     CONSTRAINT ck_app_user_password_hash_not_blank CHECK (password_hash IS NULL OR btrim(password_hash) <> ''),
     -- Access is issued with no password and activated later, but an account must
     -- never be able to reach ACTIVE without one.
@@ -162,14 +179,30 @@ CREATE INDEX IF NOT EXISTS ix_app_user_learner
     ON app_user (learner_id)
     WHERE learner_id IS NOT NULL;
 
--- Email is unique within a school, case-insensitively, and only where present.
--- A plain unique constraint would not do: it would either forbid the many learners
--- who have no email, or make an address globally unique and so block the same
--- person from enrolling at a second school. Platform operators have no school and
--- are grouped under the nil UUID so they remain unique among themselves.
-CREATE UNIQUE INDEX IF NOT EXISTS ux_app_user_school_email
-    ON app_user (COALESCE(school_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(email))
-    WHERE email IS NOT NULL;
+-- Unique within a school, not globally. Global uniqueness would forbid a learner
+-- enrolling at a second school, which is two learner records and therefore two
+-- logins carrying the same number, and that is explicitly allowed.
+--
+-- Scoped this way it costs nothing that was previously permitted, and it buys the
+-- intra-school half of the person kind exclusivity rule: staff and learner each
+-- already enforce one number per person within a school, so the only gap was across
+-- the two tables, and this closes it. One person cannot hold both a staff login and
+-- a learner login at the same school on the same number.
+--
+-- It is a backstop, not the mechanism. It misses a violation where the two accounts
+-- use different numbers, where only one side has a login, or where the two records
+-- sit at different schools. It also cannot distinguish one person holding two kinds
+-- of record from two people genuinely sharing a number, such as an instructor and
+-- their child at the same school, and will refuse the second along with the first.
+-- The service layer remains responsible for the rule.
+--
+-- Platform operators have no school and are grouped under the nil UUID so they stay
+-- unique among themselves.
+--
+-- Account recovery still resolves by username rather than by number: within a school
+-- a number now identifies one account, but across schools it may identify several.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_app_user_school_phone
+    ON app_user (COALESCE(school_id, '00000000-0000-0000-0000-000000000000'::uuid), phone_number_e164);
 
 -- Which branches a staff member works at: zero, one, or many.
 --

@@ -83,6 +83,56 @@ Constraints:
 - Membership grants nothing by itself. It is the precondition for holding a
   branch-owned role, and removing it removes those roles.
 
+## Person Kind Exclusivity
+
+A person is exactly one of a platform operator, a member of school staff, or a
+learner. The three kinds are mutually exclusive, as recorded in
+`business-requirements/domain-and-rules.md`.
+
+The schema enforces **part** of this rule and cannot enforce the rest. Do not assume
+the database upholds it in general.
+
+What the schema does catch: a unique index on `(school, phone number)` over logins
+means one person cannot hold both a staff login and a learner login at the same
+school on the same number. Staff and learner each already require one number per
+person within a school, so that index closes the remaining gap across the two
+tables.
+
+What it misses, and why it is a backstop rather than the mechanism:
+
+- The two accounts using different numbers. The login's number is a separate fact
+  from the person's, so a violation that registers different numbers slips through.
+- Only one side having a login. The index sees accounts, not people, so a staff
+  member with no login plus a learner record for the same person is invisible.
+- The two records sitting at different schools, which the next section covers.
+- It cannot tell one person holding two kinds of record from two people genuinely
+  sharing a number, such as an instructor and their child at the same school. It
+  refuses the legitimate case along with the violation.
+
+Why the rule cannot be a constraint in general:
+
+- `platform_operator`, `staff`, and `learner` are independent tables with unrelated
+  primary keys. There is no shared person key for a constraint to compare, so the
+  database has no way to tell that two rows describe the same human.
+- The rule is cross-table exclusivity, which SQL cannot express. A trigger checking
+  the sibling tables would race under concurrency: two inserts each check, each pass,
+  and both commit.
+- Making it structural would require a shared `person` record that all three tables
+  reference, with the kind pinned by composite foreign key. That is the correct
+  design if the rule is ever promoted to an invariant.
+
+Where it is enforced, and what that costs:
+
+- The service that creates a person record checks the other two kinds first.
+- Within one school the check is reliable, because contact details are unique per
+  school and the existing records are visible.
+- Across schools it is not reliably detectable. Tenant isolation prevents one
+  school's records from being read while creating a record in another, so a person
+  who is staff at one school can be enrolled as a learner at a different school
+  without the system noticing.
+- Treat cross-school violations as a data quality concern to be found by reporting,
+  not as something the application will prevent.
+
 ## Platform Model
 
 ### PlatformOperator
@@ -117,6 +167,8 @@ credentials and account state, never the person's details.
 - `id`: internal UUID primary key.
 - `schoolId`: owning school, or absent for a platform operator.
 - `username`: login identifier.
+- `phoneNumber`: required. The account's authentication channel, where a one-time
+  code or a reset link is sent.
 - `passwordHash`: absent until the account is activated.
 - `status`: pending activation, active, suspended, locked, or disabled.
 - `platformOperatorId`: the operator this login belongs to, or absent otherwise.
@@ -136,9 +188,20 @@ Constraints:
   branch-owned role.
 - A branch-owned role may only be granted to a login whose staff member currently
   works at that branch.
-- `displayName` and `email` on the login are the account's own label and its
-  security contact address. The person record remains authoritative for the legal
-  name and the contact address.
+- The login carries no email address. Email is optional on a person record, so it
+  cannot be relied on to reach an account. A phone number can, because every person
+  record requires one.
+- `displayName` and `phoneNumber` on the login are the account's own label and its
+  authentication channel. The person record remains authoritative for the legal name
+  and the contact details, and the two may legitimately differ: a staff member may
+  want one-time codes on a work phone while their employment record holds a personal
+  one.
+- The login's phone number is unique within a school, not globally. Global
+  uniqueness would forbid a learner enrolling at a second school, which is two
+  records and therefore two logins on one number.
+- Recovery resolves by username, never by looking an account up from a number.
+  Within a school a number now identifies one account, but across schools it may
+  identify several.
 
 ### Learner Username Generation
 

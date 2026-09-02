@@ -27,8 +27,10 @@ CREATE TABLE IF NOT EXISTS platform_operator (
     designation varchar(64) NOT NULL,                     -- a label, never a permission
     employment_status varchar(32) DEFAULT 'ACTIVE' NOT NULL,
     email varchar(254) NOT NULL,                          -- required; an operator is always reachable
-    phone_number varchar(32),                             -- optional; email is the working channel
-    phone_number_e164 varchar(16),
+    -- Required, like staff and learner. The login's authentication channel is a
+    -- phone number, so every person who can be given an account must have one.
+    phone_number varchar(32) NOT NULL,                    -- as entered
+    phone_number_e164 varchar(16) NOT NULL,               -- normalized, for lookup and messaging
     joined_on date DEFAULT CURRENT_DATE NOT NULL,
     left_on date,                                         -- set when employment ends
     created_at timestamp DEFAULT now() NOT NULL,
@@ -47,11 +49,9 @@ CREATE TABLE IF NOT EXISTS platform_operator (
     CONSTRAINT ck_platform_operator_full_name_not_blank CHECK (btrim(full_name) <> ''),
     CONSTRAINT ck_platform_operator_designation_not_blank CHECK (btrim(designation) <> ''),
     CONSTRAINT ck_platform_operator_email_format CHECK (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'),
-    CONSTRAINT ck_platform_operator_phone_format CHECK (phone_number IS NULL OR phone_number ~ '^[0-9 +()-]+$'),
-    CONSTRAINT ck_platform_operator_phone_e164_format CHECK (phone_number_e164 IS NULL OR phone_number_e164 ~ '^\+[1-9][0-9]{7,14}$'),
-    -- Both phone columns are present or both absent; a normalized number with no
-    -- entered form, or the reverse, means one of the two was never written.
-    CONSTRAINT ck_platform_operator_phone_pair CHECK ((phone_number IS NULL) = (phone_number_e164 IS NULL)),
+    CONSTRAINT uk_platform_operator_phone UNIQUE (phone_number_e164),
+    CONSTRAINT ck_platform_operator_phone_format CHECK (phone_number ~ '^[0-9 +()-]+$'),
+    CONSTRAINT ck_platform_operator_phone_e164_format CHECK (phone_number_e164 ~ '^\+[1-9][0-9]{7,14}$'),
     CONSTRAINT ck_platform_operator_joined_on CHECK (joined_on >= DATE '1900-01-01'),
     CONSTRAINT ck_platform_operator_left_on CHECK (left_on IS NULL OR left_on >= joined_on),
     -- A leaving date and a still-employed status contradict each other.
