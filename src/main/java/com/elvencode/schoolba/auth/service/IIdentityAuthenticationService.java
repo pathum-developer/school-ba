@@ -1,6 +1,6 @@
 package com.elvencode.schoolba.auth.service;
 
-import com.elvencode.schoolba.auth.model.AuthenticatedIdentity;
+import com.elvencode.schoolba.auth.dto.AuthenticatedIdentity;
 import org.springframework.security.core.AuthenticationException;
 
 /**

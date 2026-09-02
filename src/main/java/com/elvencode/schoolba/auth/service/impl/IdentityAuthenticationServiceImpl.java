@@ -5,10 +5,10 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.elvencode.schoolba.auth.dto.AuthenticatedIdentity;
+import com.elvencode.schoolba.auth.dto.IdentityGrant;
 import com.elvencode.schoolba.auth.entity.Identity;
 import com.elvencode.schoolba.auth.enums.ScopeType;
-import com.elvencode.schoolba.auth.model.AuthenticatedIdentity;
-import com.elvencode.schoolba.auth.model.IdentityGrant;
 import com.elvencode.schoolba.auth.repository.IdentityGrantProjection;
 import com.elvencode.schoolba.auth.repository.IdentityRepository;
 import com.elvencode.schoolba.auth.service.IIdentityAuthenticationService;

@@ -1,6 +1,6 @@
 package com.elvencode.schoolba.config.security;
 
-import com.elvencode.schoolba.auth.model.AuthenticatedIdentity;
+import com.elvencode.schoolba.auth.dto.AuthenticatedIdentity;
 import com.elvencode.schoolba.auth.service.IIdentityAuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;

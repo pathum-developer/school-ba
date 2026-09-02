@@ -1,4 +1,4 @@
-package com.elvencode.schoolba.auth.model;
+package com.elvencode.schoolba.auth.dto;
 
 import java.io.Serializable;
 import java.util.Objects;
