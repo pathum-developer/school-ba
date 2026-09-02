@@ -37,7 +37,6 @@ public class JwtUtil {
                 .subject(JWT_SUBJECT)
                 .claim("username", authentication.getName())
                 .claim("roles", roleList(authentication))
-                .claim("authorities", authorityList(authentication))
                 .issuedAt(issuedAt)
                 .expiration(expiration)
                 .signWith(secretKey())
@@ -58,13 +57,6 @@ public class JwtUtil {
                 .map(GrantedAuthority::getAuthority)
                 .filter(authority -> authority.startsWith(ROLE_PREFIX))
                 .map(authority -> authority.substring(ROLE_PREFIX.length()))
-                .toList();
-    }
-
-    private List<String> authorityList(Authentication authentication) {
-        return authentication.getAuthorities()
-                .stream()
-                .map(GrantedAuthority::getAuthority)
                 .toList();
     }
 

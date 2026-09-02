@@ -29,7 +29,6 @@ public class JwtTokenValidatorFilter extends OncePerRequestFilter {
     private static final String ROLE_PREFIX = "ROLE_";
     private static final String USERNAME_CLAIM = "username";
     private static final String ROLES_CLAIM = "roles";
-    private static final String AUTHORITIES_CLAIM = "authorities";
     private static final String TOKEN_EXPIRED_MESSAGE = "Token expired";
     private static final String INVALID_TOKEN_MESSAGE = "Invalid token received";
 
@@ -80,18 +79,11 @@ public class JwtTokenValidatorFilter extends OncePerRequestFilter {
     }
 
     private List<SimpleGrantedAuthority> authorityList(Claims claims) {
-        List<?> authorityList = claims.get(AUTHORITIES_CLAIM, List.class);
-        if (authorityList != null) {
-            return authorityList.stream()
-                    .map(String::valueOf)
-                    .map(SimpleGrantedAuthority::new)
-                    .toList();
-        }
-
         List<?> roleList = claims.get(ROLES_CLAIM, List.class);
         if (roleList == null) {
             return List.of();
         }
+
         return roleList.stream()
                 .map(String::valueOf)
                 .map(this::authority)
