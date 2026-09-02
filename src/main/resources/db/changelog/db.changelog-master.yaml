@@ -13,3 +13,5 @@ databaseChangeLog:
       file: db/changelog/changes/006-seed-branch-update-permission.yaml
   - include:
       file: db/changelog/changes/007-seed-school-super-admin-role.yaml
+  - include:
+      file: db/changelog/changes/008-seed-elven-super-admin-account.yaml

@@ -120,4 +120,52 @@ WHERE role.code = 'school-super-admin'
 	AND permission.max_scope_type IN ('SCHOOL', 'BRANCH')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
+-- ---------------------------------------------------------------------------
+-- LOCAL AND DEMO ONLY, BELOW THIS LINE
+--
+-- The bootstrap administrator. Its password is committed to this repository, so any
+-- environment loaded with it has a publicly known administrator account. Under
+-- Liquibase this lives in the "demo" context and does not run by default; running
+-- this file by hand loads it unconditionally, which is what you want on a local
+-- database and never what you want anywhere else.
+--
+-- Username elven_super, password ElvenSuper@123.
+-- ---------------------------------------------------------------------------
+
+-- m_staff
+INSERT INTO public.m_staff (id, school_id, employee_no, full_name, national_id, date_of_birth, designation, employment_status, phone_number, phone_number_e164, email, address, joined_on)
+SELECT '60000000-0000-0000-0000-000000000001', school.id, 'E-0001', 'Elven Super Admin',
+	'199012345678', DATE '1990-05-15', 'School Administrator', 'ACTIVE',
+	'077 480 1100', '+94774801100', 'super.admin@elvendriving.lk',
+	'Cotta Road, Rajagiriya, Sri Lanka', DATE '2026-01-01'
+FROM public.m_school school
+WHERE school.code = 'elven'
+ON CONFLICT ON CONSTRAINT uk_staff_school_employee_no DO NOTHING;
+
+-- m_app_user
+-- Stored lowercase because usernames are constrained to lower case; sign-in should
+-- fold the entered value, so typing ELVEN_SUPER works. Hash is bcrypt cost 10.
+INSERT INTO public.m_app_user (id, school_id, platform_operator_id, staff_id, learner_id, username, phone_number, phone_number_e164, password_hash, display_name, status)
+SELECT '70000000-0000-0000-0000-000000000001', staff.school_id, NULL, staff.id, NULL, 'elven_super',
+	'077 480 1100', '+94774801100',
+	'$2a$10$OfnRkLUdXhruJgcKC3I2NO536UZBvxBuQVoE9bPBRU09rluycVyXi',
+	'Elven Super Admin', 'ACTIVE'
+FROM public.m_staff staff
+WHERE staff.id = '60000000-0000-0000-0000-000000000001'
+ON CONFLICT ON CONSTRAINT uk_app_user_username DO NOTHING;
+
+-- t_user_role_assignment
+-- granted_by points at the account itself: the first administrator has nobody above
+-- them, and granted_by is NOT NULL because every later grant must name a real granter.
+INSERT INTO public.t_user_role_assignment (user_id, role_id, scope_type, school_id, branch_id, assignable_to, is_staff, staff_id, granted_by)
+SELECT app_user.id, role.id, 'SCHOOL', role.school_id, NULL, role.assignable_to, app_user.is_staff,
+	app_user.staff_id, app_user.id
+FROM public.m_app_user app_user
+JOIN public.m_role role
+	ON role.school_id = app_user.school_id
+	AND role.code = 'school-super-admin'
+	AND role.scope_type = 'SCHOOL'
+WHERE app_user.username = 'elven_super'
+ON CONFLICT ON CONSTRAINT uk_user_role_assignment_grant DO NOTHING;
+
 COMMIT;

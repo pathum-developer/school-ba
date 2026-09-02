@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 029-seed-elven-super-admin-account
+      author: codex
+      context: demo
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: ../sql/029-seed-elven-super-admin-account.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
