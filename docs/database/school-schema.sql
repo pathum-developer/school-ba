@@ -23,20 +23,22 @@ SET default_table_access_method = heap;
 
 -- Tables
 
+-- The tenant root. Every other school-owned row reaches a school through this table,
+-- directly or through a branch.
 CREATE TABLE public.m_school (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    code character varying(64) NOT NULL,
+    code character varying(64) NOT NULL,                                               -- stable public identifier used in URLs, never the UUID
     name character varying(160) NOT NULL,
-    short_name character varying(80) NOT NULL,
-    established_year smallint NOT NULL,
+    short_name character varying(80) NOT NULL,                                         -- compact display form for navigation and headers
+    established_year smallint NOT NULL,                                                -- shown on the public profile
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    hotline_href character varying(64) NOT NULL,
-    whatsapp_href character varying(128) NOT NULL,
+    hotline_href character varying(64) NOT NULL,                                       -- tel: URI, used directly as a click-to-call link
+    whatsapp_href character varying(128) NOT NULL,                                     -- https://wa.me/ link
     email character varying(254) NOT NULL,
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
-    tenant_status character varying(32) DEFAULT 'ACTIVE'::character varying NOT NULL,
+    tenant_status character varying(32) DEFAULT 'ACTIVE'::character varying NOT NULL,  -- ACTIVE | SUSPENDED | ARCHIVED; suspends the whole tenant
     CONSTRAINT ck_school_code_format CHECK (((code)::text ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'::text)),
     CONSTRAINT ck_school_email_format CHECK (((email IS NULL) OR ((email)::text ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'::text))),
     CONSTRAINT ck_school_established_year CHECK (((established_year IS NULL) OR ((established_year >= 1800) AND (established_year <= 9999)))),
@@ -50,18 +52,20 @@ CREATE TABLE public.m_school (
     CONSTRAINT uk_school_code UNIQUE (code)
 );
 
+-- Sri Lanka Department of Motor Traffic licence classes. Reference data: seeded by
+-- migration, read by the public catalogue, never written at runtime.
 CREATE TABLE public.r_license_class (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    code character varying(64) NOT NULL,
+    code character varying(64) NOT NULL,                                            -- DMT class code such as A1, B, CE; the public identifier
     name character varying(120) NOT NULL,
-    display_order integer NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
+    display_order integer NOT NULL,                                                 -- fixed catalogue order, unique across classes
+    is_active boolean DEFAULT true NOT NULL,                                        -- retired classes stay for historical records
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    included_class_codes jsonb DEFAULT '[]'::jsonb NOT NULL,
-    old_class_codes jsonb DEFAULT '[]'::jsonb NOT NULL,
-    source_url character varying(512) NOT NULL,
-    description text NOT NULL,
+    included_class_codes jsonb DEFAULT '[]'::jsonb NOT NULL,                        -- classes this one also entitles the holder to drive
+    old_class_codes jsonb DEFAULT '[]'::jsonb NOT NULL,                             -- superseded legacy codes this class replaced
+    source_url character varying(512) NOT NULL,                                     -- the DMT page the definition was taken from
+    description text NOT NULL,                                                      -- the official wording, quoted rather than paraphrased
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     CONSTRAINT ck_license_class_code_format CHECK (((code)::text ~ '^[A-Z][A-Z0-9]*$'::text)),
@@ -77,12 +81,14 @@ CREATE TABLE public.r_license_class (
     CONSTRAINT uk_license_class_display_order UNIQUE (display_order)
 );
 
+-- The action catalogue. Reference data. Application code checks these codes and
+-- never checks role names, so a role can be renamed without touching a check.
 CREATE TABLE public.r_permission (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    code character varying(64) NOT NULL,
-    resource character varying(32) NOT NULL,
-    action character varying(32) NOT NULL,
-    max_scope_type character varying(32) NOT NULL,
+    code character varying(64) NOT NULL,                                            -- 'learner:read'; the only thing application code checks
+    resource character varying(32) NOT NULL,                                        -- 'learner'
+    action character varying(32) NOT NULL,                                          -- 'read'
+    max_scope_type character varying(32) NOT NULL,                                  -- deepest scope a role may hold this at; the privilege ceiling
     description character varying(255) NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
@@ -99,17 +105,20 @@ CREATE TABLE public.r_permission (
     CONSTRAINT uk_permission_resource_action UNIQUE (resource, action)
 );
 
+-- A person who runs the platform itself, employed by no school. That absence of a
+-- school is exactly what separates an operator from staff, so there is no school_id.
+-- Exists whether or not the person has a login.
 CREATE TABLE public.m_platform_operator (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    employee_no character varying(32) NOT NULL,
-    full_name character varying(160) NOT NULL,
-    designation character varying(64) NOT NULL,
-    employment_status character varying(32) DEFAULT 'ACTIVE'::character varying NOT NULL,
-    email character varying(254) NOT NULL,
-    phone_number character varying(32) NOT NULL,
-    phone_number_e164 character varying(16) NOT NULL,
+    employee_no character varying(32) NOT NULL,                                            -- platform-wide, since there is no school to scope it by
+    full_name character varying(160) NOT NULL,                                             -- legal name, as distinct from a login display name
+    designation character varying(64) NOT NULL,                                            -- a label only; it grants no permission whatsoever
+    employment_status character varying(32) DEFAULT 'ACTIVE'::character varying NOT NULL,  -- governs access; leaving the active set disables the login
+    email character varying(254) NOT NULL,                                                 -- required; an operator is always reachable
+    phone_number character varying(32) NOT NULL,                                           -- as entered
+    phone_number_e164 character varying(16) NOT NULL,                                      -- normalized, for lookup and messaging
     joined_on date DEFAULT CURRENT_DATE NOT NULL,
-    left_on date,
+    left_on date,                                                                          -- set when employment ends; only for RESIGNED or TERMINATED
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
@@ -131,14 +140,16 @@ CREATE TABLE public.m_platform_operator (
     CONSTRAINT uk_platform_operator_phone UNIQUE (phone_number_e164)
 );
 
+-- A branch or yard of one school. Branches are the unit staff are assigned to and
+-- learners are registered at.
 CREATE TABLE public.m_branch (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    school_id uuid NOT NULL,
-    code character varying(64) NOT NULL,
+    school_id uuid NOT NULL,                                                         -- owning school; a branch belongs to exactly one
+    code character varying(64) NOT NULL,                                             -- stable identifier unique within the school, e.g. 'rajagiriya'
     name character varying(160) NOT NULL,
-    branch_type character varying(32) DEFAULT 'BRANCH'::character varying NOT NULL,
-    is_head_office boolean DEFAULT false NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
+    branch_type character varying(32) DEFAULT 'BRANCH'::character varying NOT NULL,  -- BRANCH | YARD
+    is_head_office boolean DEFAULT false NOT NULL,                                   -- at most one per school, by partial unique index
+    is_active boolean DEFAULT true NOT NULL,                                         -- soft deactivation; branches are not deleted
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
     address character varying(255) NOT NULL,
@@ -155,14 +166,15 @@ CREATE TABLE public.m_branch (
     CONSTRAINT fk_branch_school FOREIGN KEY (school_id) REFERENCES public.m_school(id) ON DELETE RESTRICT
 );
 
+-- Public contact numbers for a school, ordered for display on the catalogue site.
 CREATE TABLE public.m_school_contact_number (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     school_id uuid NOT NULL,
-    contact_type character varying(32) DEFAULT 'GENERAL'::character varying NOT NULL,
-    phone_number character varying(32) NOT NULL,
-    phone_number_e164 character varying(16) NOT NULL,
-    is_primary boolean DEFAULT false NOT NULL,
-    display_order integer DEFAULT 1 NOT NULL,
+    contact_type character varying(32) DEFAULT 'GENERAL'::character varying NOT NULL,  -- GENERAL | HOTLINE | WHATSAPP
+    phone_number character varying(32) NOT NULL,                                       -- as entered
+    phone_number_e164 character varying(16) NOT NULL,                                  -- normalized, for lookup and messaging
+    is_primary boolean DEFAULT false NOT NULL,                                         -- at most one per school, by partial unique index
+    display_order integer DEFAULT 1 NOT NULL,                                          -- presentation order within the school
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
@@ -180,21 +192,24 @@ CREATE TABLE public.m_school_contact_number (
     CONSTRAINT fk_school_contact_number_school FOREIGN KEY (school_id) REFERENCES public.m_school(id) ON DELETE CASCADE
 );
 
+-- A school-owned employment record. Kept separate from m_app_user because a person
+-- is not a login: a yard assistant can be on the payroll and assigned to a branch
+-- with no system access at all.
 CREATE TABLE public.m_staff (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    school_id uuid NOT NULL,
-    employee_no character varying(32) NOT NULL,
-    full_name character varying(160) NOT NULL,
-    national_id character varying(32),
+    school_id uuid NOT NULL,                                                               -- employing school; a staff record is never shared
+    employee_no character varying(32) NOT NULL,                                            -- school-specific, unique within the school
+    full_name character varying(160) NOT NULL,                                             -- legal name, as distinct from a login display name
+    national_id character varying(32),                                                     -- NIC; optional
     date_of_birth date,
-    designation character varying(64) NOT NULL,
-    employment_status character varying(32) DEFAULT 'ACTIVE'::character varying NOT NULL,
-    phone_number character varying(32) NOT NULL,
-    phone_number_e164 character varying(16) NOT NULL,
-    email character varying(254),
+    designation character varying(64) NOT NULL,                                            -- 'Instructor', 'Registrar'; a label, never a permission
+    employment_status character varying(32) DEFAULT 'ACTIVE'::character varying NOT NULL,  -- governs access; leaving the active set disables the login
+    phone_number character varying(32) NOT NULL,                                           -- as entered
+    phone_number_e164 character varying(16) NOT NULL,                                      -- normalized; unique within the school, not across schools
+    email character varying(254),                                                          -- optional, unique within the school where present
     address character varying(255),
-    joined_on date DEFAULT CURRENT_DATE NOT NULL,
-    left_on date,
+    joined_on date DEFAULT CURRENT_DATE NOT NULL,                                          -- employment start
+    left_on date,                                                                          -- set when employment ends; only for RESIGNED or TERMINATED
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
@@ -221,19 +236,21 @@ CREATE TABLE public.m_staff (
     CONSTRAINT fk_staff_school FOREIGN KEY (school_id) REFERENCES public.m_school(id) ON DELETE RESTRICT
 );
 
+-- Public contact numbers for a branch. Carries school_id so the branch reference can
+-- be a school-matched pair rather than a bare id.
 CREATE TABLE public.m_branch_contact_number (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     branch_id uuid NOT NULL,
-    contact_type character varying(32) DEFAULT 'GENERAL'::character varying NOT NULL,
-    phone_number character varying(32) NOT NULL,
-    phone_number_e164 character varying(16) NOT NULL,
-    is_primary boolean DEFAULT false NOT NULL,
-    display_order integer DEFAULT 1 NOT NULL,
+    contact_type character varying(32) DEFAULT 'GENERAL'::character varying NOT NULL,  -- GENERAL | HOTLINE | WHATSAPP
+    phone_number character varying(32) NOT NULL,                                       -- as entered
+    phone_number_e164 character varying(16) NOT NULL,                                  -- normalized, for lookup and messaging
+    is_primary boolean DEFAULT false NOT NULL,                                         -- at most one per branch, by partial unique index
+    display_order integer DEFAULT 1 NOT NULL,                                          -- presentation order within the branch
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
-    school_id uuid NOT NULL,
+    school_id uuid NOT NULL,                                                           -- denormalized so the branch FK can pair (branch_id, school_id)
     CONSTRAINT ck_branch_contact_number_display_order_positive CHECK ((display_order > 0)),
     CONSTRAINT ck_branch_contact_number_e164_format CHECK (((phone_number_e164)::text ~ '^\+[1-9][0-9]{7,14}$'::text)),
     CONSTRAINT ck_branch_contact_number_phone_format CHECK (((phone_number)::text ~ '^[0-9 +()-]+$'::text)),
@@ -248,20 +265,22 @@ CREATE TABLE public.m_branch_contact_number (
     CONSTRAINT fk_branch_contact_number_branch FOREIGN KEY (branch_id, school_id) REFERENCES public.m_branch(id, school_id) ON DELETE CASCADE
 );
 
+-- A school-owned learner record. Belongs to exactly one school and is registered at
+-- exactly one branch of that school at a time.
 CREATE TABLE public.m_learner (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    school_id uuid NOT NULL,
-    current_branch_id uuid NOT NULL,
-    learner_no character varying(32) NOT NULL,
-    status character varying(32) DEFAULT 'ENROLLED'::character varying NOT NULL,
-    full_name character varying(160) NOT NULL,
-    national_id character varying(32),
-    date_of_birth date NOT NULL,
-    email character varying(254),
-    phone_number character varying(32) NOT NULL,
-    phone_number_e164 character varying(16) NOT NULL,
+    school_id uuid NOT NULL,                                                        -- owning school; a learner is never shared across schools
+    current_branch_id uuid NOT NULL,                                                -- exactly one at a time, and always in the same school
+    learner_no character varying(32) NOT NULL,                                      -- school-specific, unique within the school
+    status character varying(32) DEFAULT 'ENROLLED'::character varying NOT NULL,    -- leaving ENROLLED or ACTIVE disables the login by trigger
+    full_name character varying(160) NOT NULL,                                      -- legal name, as distinct from a login display name
+    national_id character varying(32),                                              -- NIC; absent for a learner who has none yet
+    date_of_birth date NOT NULL,                                                    -- drives licence class eligibility
+    email character varying(254),                                                   -- optional; a learner login does not require one
+    phone_number character varying(32) NOT NULL,                                    -- as entered
+    phone_number_e164 character varying(16) NOT NULL,                               -- normalized; unique within the school, not across schools
     address character varying(255),
-    enrolled_on date DEFAULT CURRENT_DATE NOT NULL,
+    enrolled_on date DEFAULT CURRENT_DATE NOT NULL,                                 -- enrolment date
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
@@ -286,24 +305,27 @@ CREATE TABLE public.m_learner (
     CONSTRAINT fk_learner_school FOREIGN KEY (school_id) REFERENCES public.m_school(id) ON DELETE RESTRICT
 );
 
+-- Every identity that can sign in. Holds credentials and account state only; who the
+-- person is lives in m_platform_operator, m_staff or m_learner, and exactly one of
+-- those links is set.
 CREATE TABLE public.m_app_user (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    school_id uuid,
-    platform_operator_id uuid,
-    staff_id uuid,
-    learner_id uuid,
-    is_staff boolean GENERATED ALWAYS AS ((learner_id IS NULL)) STORED,
-    username character varying(64) NOT NULL,
-    phone_number character varying(32) NOT NULL,
-    phone_number_e164 character varying(16) NOT NULL,
-    password_hash character varying(255),
-    display_name character varying(160) NOT NULL,
-    status character varying(32) DEFAULT 'PENDING_ACTIVATION'::character varying NOT NULL,
-    authorization_version integer DEFAULT 0 NOT NULL,
-    failed_attempt_count smallint DEFAULT 0 NOT NULL,
-    locked_until timestamp without time zone,
+    school_id uuid,                                                                         -- NULL only for a platform operator
+    platform_operator_id uuid,                                                              -- set only for a platform login
+    staff_id uuid,                                                                          -- set only for a staff login
+    learner_id uuid,                                                                        -- set only for a learner login
+    is_staff boolean GENERATED ALWAYS AS ((learner_id IS NULL)) STORED,                     -- generated: 'not a learner'. Platform operators count as staff here
+    username character varying(64) NOT NULL,                                                -- the only login identifier; a learner's is system-generated
+    phone_number character varying(32) NOT NULL,                                            -- as entered
+    phone_number_e164 character varying(16) NOT NULL,                                       -- the account's recovery channel; unique per school
+    password_hash character varying(255),                                                   -- absent until the account is activated
+    display_name character varying(160) NOT NULL,                                           -- UI label; the person record is authoritative for the legal name
+    status character varying(32) DEFAULT 'PENDING_ACTIVATION'::character varying NOT NULL,  -- PENDING_ACTIVATION until a password is set
+    authorization_version integer DEFAULT 0 NOT NULL,                                       -- bumped by trigger on any grant change; evicts cached permissions
+    failed_attempt_count smallint DEFAULT 0 NOT NULL,                                       -- reset on successful login
+    locked_until timestamp without time zone,                                               -- NULL when the account is not locked out
     last_login_at timestamp without time zone,
-    password_changed_at timestamp without time zone DEFAULT now() NOT NULL,
+    password_changed_at timestamp without time zone DEFAULT now() NOT NULL,                 -- drives password age policy
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
@@ -336,17 +358,19 @@ CREATE TABLE public.m_app_user (
     CONSTRAINT fk_app_user_staff FOREIGN KEY (staff_id, school_id) REFERENCES public.m_staff(id, school_id) ON DELETE RESTRICT
 );
 
+-- A named bundle of permissions owned by exactly one scope. There are no unowned
+-- template roles: default roles for a new branch are created as real owned rows.
 CREATE TABLE public.m_role (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    scope_type character varying(32) NOT NULL,
-    school_id uuid,
-    branch_id uuid,
-    assignable_to character varying(32) DEFAULT 'STAFF'::character varying NOT NULL,
-    code character varying(64) NOT NULL,
+    scope_type character varying(32) NOT NULL,                                        -- PLATFORM | SCHOOL | BRANCH; who the role is owned by
+    school_id uuid,                                                                   -- NULL only when PLATFORM
+    branch_id uuid,                                                                   -- NOT NULL only when BRANCH
+    assignable_to character varying(32) DEFAULT 'STAFF'::character varying NOT NULL,  -- STAFF | LEARNER; a grant must match the kind of account
+    code character varying(64) NOT NULL,                                              -- unique per owner, so every branch may have its own 'instructor'
     name character varying(160) NOT NULL,
     description character varying(255),
-    is_system boolean DEFAULT false NOT NULL,
-    is_assignable boolean DEFAULT true NOT NULL,
+    is_system boolean DEFAULT false NOT NULL,                                         -- provisioned by migration; not user-editable
+    is_assignable boolean DEFAULT true NOT NULL,                                      -- retire a role without deleting it
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
@@ -369,16 +393,17 @@ CREATE TABLE public.m_role (
     CONSTRAINT fk_role_school FOREIGN KEY (school_id) REFERENCES public.m_school(id) ON DELETE CASCADE
 );
 
+-- Which licence classes a branch teaches, and what it charges for each.
 CREATE TABLE public.x_branch_license_class (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     branch_id uuid NOT NULL,
     license_class_id uuid NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
-    price_lkr numeric(12,2) NOT NULL,
+    price_lkr numeric(12,2) NOT NULL,                                               -- exact decimal; never a floating point type for money
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    school_id uuid NOT NULL,
+    school_id uuid NOT NULL,                                                        -- denormalized so the branch FK can pair (branch_id, school_id)
     CONSTRAINT ck_branch_license_class_price_lkr_positive CHECK ((price_lkr > (0)::numeric)),
     CONSTRAINT ck_branch_license_class_timestamps CHECK ((updated_at >= created_at)),
     CONSTRAINT pk_branch_license_class PRIMARY KEY (id),
@@ -388,11 +413,13 @@ CREATE TABLE public.x_branch_license_class (
     CONSTRAINT fk_branch_license_class_license_class FOREIGN KEY (license_class_id) REFERENCES public.r_license_class(id) ON DELETE RESTRICT
 );
 
+-- Which permissions a role carries. Insert and delete only, never updated, which is
+-- why it has no updated_at.
 CREATE TABLE public.x_role_permission (
     role_id uuid NOT NULL,
-    role_scope_type character varying(32) NOT NULL,
+    role_scope_type character varying(32) NOT NULL,                                 -- copy of m_role.scope_type, pinned by the FK below
     permission_id uuid NOT NULL,
-    permission_max_scope_type character varying(32) NOT NULL,
+    permission_max_scope_type character varying(32) NOT NULL,                       -- copy of r_permission.max_scope_type, likewise pinned
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     CONSTRAINT ck_role_permission_scope_depth CHECK ((
@@ -413,12 +440,15 @@ END)),
     CONSTRAINT fk_role_permission_role FOREIGN KEY (role_id, role_scope_type) REFERENCES public.m_role(id, scope_type) ON DELETE CASCADE
 );
 
+-- Which branches a staff member works at: zero, one, or many. Keyed by the staff
+-- member rather than the login, because where someone works holds without an account.
+-- Grants nothing by itself; it is the precondition for holding a branch-owned role.
 CREATE TABLE public.x_staff_branch_membership (
-    staff_id uuid NOT NULL,
+    staff_id uuid NOT NULL,                                                         -- the employed person, not their login
     branch_id uuid NOT NULL,
-    school_id uuid NOT NULL,
-    is_primary boolean DEFAULT false NOT NULL,
-    assigned_at timestamp without time zone DEFAULT now() NOT NULL,
+    school_id uuid NOT NULL,                                                        -- must match both the staff member's and the branch's school
+    is_primary boolean DEFAULT false NOT NULL,                                      -- the home branch; at most one per staff member
+    assigned_at timestamp without time zone DEFAULT now() NOT NULL,                 -- when the person started working at this branch
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
@@ -429,17 +459,18 @@ CREATE TABLE public.x_staff_branch_membership (
     CONSTRAINT fk_staff_branch_membership_staff FOREIGN KEY (staff_id, school_id) REFERENCES public.m_staff(id, school_id) ON DELETE CASCADE
 );
 
+-- Rotating refresh tokens. Access tokens are short-lived and never stored.
 CREATE TABLE public.t_refresh_token (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,
-    token_hash character varying(64) NOT NULL,
-    jti uuid NOT NULL,
+    user_id uuid NOT NULL,                                         -- the account this token authenticates
+    token_hash character varying(64) NOT NULL,                     -- sha-256 hex; the token itself is never stored
+    jti uuid NOT NULL,                                             -- matches the JWT claim, for audit correlation
     issued_at timestamp without time zone DEFAULT now() NOT NULL,
     expires_at timestamp without time zone NOT NULL,
-    revoked_at timestamp without time zone,
-    replaced_by_id uuid,
-    user_agent character varying(255),
-    ip_address inet,
+    revoked_at timestamp without time zone,                        -- NULL while the token is live
+    replaced_by_id uuid,                                           -- rotation chain; a reused parent signals theft
+    user_agent character varying(255),                             -- recorded for session review
+    ip_address inet,                                               -- recorded for session review
     CONSTRAINT ck_refresh_token_expiry CHECK ((expires_at > issued_at)),
     CONSTRAINT ck_refresh_token_hash_format CHECK (((token_hash)::text ~ '^[0-9a-f]{64}$'::text)),
     CONSTRAINT ck_refresh_token_revoked CHECK (((revoked_at IS NULL) OR (revoked_at >= issued_at))),
@@ -450,19 +481,20 @@ CREATE TABLE public.t_refresh_token (
     CONSTRAINT fk_refresh_token_user FOREIGN KEY (user_id) REFERENCES public.m_app_user(id) ON DELETE CASCADE
 );
 
+-- The scoped grant: this account holds this role, here.
 CREATE TABLE public.t_user_role_assignment (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,
+    user_id uuid NOT NULL,                                                            -- the account holding the grant
     role_id uuid NOT NULL,
-    scope_type character varying(32) NOT NULL,
-    school_id uuid,
-    branch_id uuid,
-    assignable_to character varying(32) DEFAULT 'STAFF'::character varying NOT NULL,
-    is_staff boolean DEFAULT true NOT NULL,
-    staff_id uuid,
-    granted_by uuid NOT NULL,
-    granted_at timestamp without time zone DEFAULT now() NOT NULL,
-    expires_at timestamp without time zone,
+    scope_type character varying(32) NOT NULL,                                        -- mirrors m_role.scope_type
+    school_id uuid,                                                                   -- NULL only when PLATFORM
+    branch_id uuid,                                                                   -- NOT NULL only when BRANCH
+    assignable_to character varying(32) DEFAULT 'STAFF'::character varying NOT NULL,  -- mirrors m_role.assignable_to
+    is_staff boolean DEFAULT true NOT NULL,                                           -- mirrors m_app_user.is_staff
+    staff_id uuid,                                                                    -- mirrors m_app_user.staff_id; required for a branch grant
+    granted_by uuid NOT NULL,                                                         -- a real FK, not the varchar audit column
+    granted_at timestamp without time zone DEFAULT now() NOT NULL,                    -- when the grant was made
+    expires_at timestamp without time zone,                                           -- NULL means the grant does not expire
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     created_by character varying(20) DEFAULT 'system'::character varying NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
