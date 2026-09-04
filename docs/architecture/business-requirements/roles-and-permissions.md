@@ -113,8 +113,51 @@ added later is granted to every school super admin on the next run. That is boun
 by the ceiling, but it means the grant is implicit. Replace the select with a literal
 list if each addition should be a deliberate decision.
 
+### Branch Super Admin
+
+`branch-super-admin`, scope `BRANCH`, audience `STAFF`, system role.
+
+Full administrative access within one branch. Holds every permission a branch-scoped
+role is allowed to hold, which today is five: `branch:read`, `branch:update`,
+`branch-license-class:read`, `branch-license-class:manage` and `staff:read`.
+
+There is **one role row per branch**, seeded from `m_branch`. A branch-scoped row must
+name both its school and its branch, so there is no shared template row, and a branch
+created later needs its own copy provisioned with it. The code repeats across branches
+without collision because roles are unique on `(code, schoolId, branchId)`: every
+branch may have its own `branch-super-admin`, just as every branch may have its own
+`instructor`.
+
+The audience is not a choice. A branch-scoped role may not be assignable to learners
+at all, which is the rule that keeps a learner login out of every branch-owned role.
+
+What it deliberately cannot do:
+
+- `branch:create`. A branch cannot create branches, and there would be nothing for
+  such a grant to be scoped to.
+- `branch:manage-status`. Deactivating a branch, or moving the head office, is the
+  school's decision. A branch super admin who could close their own branch, or promote
+  it to head office, would be acting outside the branch they administer.
+- Anything at another branch. The scope names one branch, and both the grant and every
+  check made through it are bounded by it.
+
+So "super admin" here means super within one branch's day-to-day operation, never
+power over the branch's existence. The exclusions are not a policy decision layered on
+top: both codes are capped at `SCHOOL`, so the database refuses them in a branch-owned
+role regardless of what the seed asks for.
+
+The permission set is selected by ceiling rather than listed by code, with the same
+consequence as the school role: a permission added later at `BRANCH` ceiling joins
+this role on the next run. That is arguably the definition of the role, since a
+`BRANCH` ceiling means precisely "safe to delegate to a branch", but replace the
+select with a literal list if each addition should be deliberate.
+
+The role is created holding permissions and granted to nobody. Assignment is a
+separate step, and additionally requires the staff member to currently work at that
+branch.
+
 ### Still to define
 
-No branch-scoped or platform-scoped roles exist yet. When they are added, record here
-which permissions each carries and at which scope, and keep this section aligned with
-the seed data.
+No platform-scoped roles exist yet, and no learner-facing role. When they are added,
+record here which permissions each carries and at which scope, and keep this section
+aligned with the seed data.

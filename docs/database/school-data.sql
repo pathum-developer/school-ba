@@ -121,6 +121,36 @@ WHERE role.code = 'school-super-admin'
 	AND permission.max_scope_type IN ('SCHOOL', 'BRANCH')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
+-- One branch super admin role per branch. A BRANCH scoped row must name both its
+-- school and its branch, and ck_role_learner_not_branch forbids a branch-owned role
+-- from being assignable to learners, which is what keeps a learner login out of every
+-- branch role. The code repeats across branches without collision because the
+-- uniqueness key is (code, school_id, branch_id).
+INSERT INTO public.m_role (scope_type, school_id, branch_id, assignable_to, code, name, description, is_system, is_assignable)
+SELECT 'BRANCH', branch.school_id, branch.id, 'STAFF', 'branch-super-admin', 'Branch Super Admin',
+	'Full administrative access within one branch', true, true
+FROM public.m_branch branch
+ON CONFLICT ON CONSTRAINT uk_role_code_per_owner DO UPDATE
+SET name = EXCLUDED.name,
+	description = EXCLUDED.description,
+	is_system = EXCLUDED.is_system,
+	is_assignable = EXCLUDED.is_assignable,
+	updated_at = now(),
+	updated_by = 'system';
+
+-- Every permission a branch-scoped role is allowed to hold, which is exactly those
+-- capped at BRANCH: a BRANCH role ranks 2 and may only hold a permission whose ceiling
+-- also ranks 2. branch:create and branch:manage-status are therefore excluded, so a
+-- branch super admin runs the branch but has no power over its existence.
+INSERT INTO public.x_role_permission (role_id, role_scope_type, permission_id, permission_max_scope_type)
+SELECT role.id, role.scope_type, permission.id, permission.max_scope_type
+FROM public.m_role role
+CROSS JOIN public.r_permission permission
+WHERE role.code = 'branch-super-admin'
+	AND role.scope_type = 'BRANCH'
+	AND permission.max_scope_type = 'BRANCH'
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
 -- ---------------------------------------------------------------------------
 -- LOCAL AND DEMO ONLY, BELOW THIS LINE
 --
