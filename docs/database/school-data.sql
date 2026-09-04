@@ -142,6 +142,17 @@ FROM public.m_school school
 WHERE school.code = 'elven'
 ON CONFLICT ON CONSTRAINT uk_staff_school_employee_no DO NOTHING;
 
+-- Local test administrator staff record present in the current local database.
+-- This row intentionally has no login or role assignment in this data file.
+INSERT INTO public.m_staff (id, school_id, employee_no, full_name, national_id, date_of_birth, designation, employment_status, phone_number, phone_number_e164, email, address, joined_on)
+SELECT '60000000-0000-0000-0000-000000000101', school.id, 'E-0101', 'Elven Test Super Admin',
+	'199012345679', DATE '1990-05-15', 'School Administrator', 'ACTIVE',
+	'077 480 1101', '+94774801101', 'test.super.admin@elvendriving.lk',
+	'Cotta Road, Rajagiriya, Sri Lanka', DATE '2026-01-01'
+FROM public.m_school school
+WHERE school.code = 'elven'
+ON CONFLICT ON CONSTRAINT uk_staff_school_employee_no DO NOTHING;
+
 -- m_identity
 -- Stored lowercase because usernames are constrained to lower case; sign-in should
 -- fold the entered value, so typing ELVEN_SUPER works. Hash is bcrypt cost 10.
