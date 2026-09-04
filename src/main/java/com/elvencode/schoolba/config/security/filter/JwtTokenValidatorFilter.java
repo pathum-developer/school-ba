@@ -1,5 +1,6 @@
 package com.elvencode.schoolba.config.security.filter;
 
+import com.elvencode.schoolba.auth.dto.AuthenticatedIdentity;
 import com.elvencode.schoolba.auth.jwt.JwtUtil;
 import com.elvencode.schoolba.common.constants.ApplicationConstant;
 import io.jsonwebtoken.Claims;
@@ -13,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -59,39 +59,30 @@ public class JwtTokenValidatorFilter extends OncePerRequestFilter {
         try {
             String jwt = authHeader.substring(ApplicationConstant.JWT_TOKEN_PREFIX.length());
             Claims claims = jwtUtil.parseJwtToken(jwt);
-            Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    claims.get(ApplicationConstant.JWT_USERNAME_CLAIM, String.class),
+
+            // The full principal, not a bare username: the claims carry the tenant and person
+            // ids and the scope of every grant, so an authorization check has what it needs
+            // without going back to the database.
+            AuthenticatedIdentity identity = jwtUtil.toPrincipal(claims);
+            Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(
+                    identity,
                     null,
-                    authorityList(claims)
+                    identity.getAuthorities()
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            filterChain.doFilter(request, response);
         } catch (ExpiredJwtException exception) {
             SecurityContextHolder.clearContext();
             writeUnauthorizedResponse(request, response, TOKEN_EXPIRED_MESSAGE);
+            return;
         } catch (Exception exception) {
             SecurityContextHolder.clearContext();
             writeUnauthorizedResponse(request, response, INVALID_TOKEN_MESSAGE);
-        }
-    }
-
-    /**
-     * Rebuilds the authorities exactly as they were written, adding no prefix of its own.
-     *
-     * <p>The authorities this application issues are permission codes such as {@code branch:read}.
-     * Prefixing them with {@code ROLE_} here, as an earlier version did, produced authorities that
-     * matched nothing a {@code @PreAuthorize} check would ever ask for.
-     */
-    private List<SimpleGrantedAuthority> authorityList(Claims claims) {
-        List<?> authorityList = claims.get(ApplicationConstant.JWT_AUTHORITIES_CLAIM, List.class);
-        if (authorityList == null) {
-            return List.of();
+            return;
         }
 
-        return authorityList.stream()
-                .map(String::valueOf)
-                .map(SimpleGrantedAuthority::new)
-                .toList();
+        // Outside the try on purpose. Running the rest of the chain inside it would report any
+        // failure downstream, in a controller or a service, as a rejected token.
+        filterChain.doFilter(request, response);
     }
 
     private void writeUnauthorizedResponse(HttpServletRequest request,

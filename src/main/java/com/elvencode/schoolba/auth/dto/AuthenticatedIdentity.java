@@ -54,15 +54,45 @@ public final class AuthenticatedIdentity implements UserDetails {
 
     private final List<GrantedAuthority> authorityList;
 
+    /** Builds the principal at sign-in, from the identity row and the grants read for it. */
     public AuthenticatedIdentity(Identity identity, List<IdentityGrant> grantList) {
-        this.id = identity.getId();
-        this.username = identity.getUsername();
-        this.displayName = identity.getDisplayName();
-        this.schoolId = identity.getSchoolId();
-        this.staffId = identity.getStaffId();
-        this.learnerId = identity.getLearnerId();
-        this.status = identity.getStatus();
-        this.authorizationVersion = identity.getAuthorizationVersion();
+        this(
+                identity.getId(),
+                identity.getUsername(),
+                identity.getDisplayName(),
+                identity.getSchoolId(),
+                identity.getStaffId(),
+                identity.getLearnerId(),
+                identity.getStatus(),
+                identity.getAuthorizationVersion(),
+                grantList
+        );
+    }
+
+    /**
+     * Builds the principal from values established earlier, which is what a request carrying a
+     * signed token holds: the claims were written at sign-in and the signature is what vouches
+     * for them, so nothing here is re-read or re-checked.
+     */
+    public AuthenticatedIdentity(
+            UUID id,
+            String username,
+            String displayName,
+            UUID schoolId,
+            UUID staffId,
+            UUID learnerId,
+            IdentityStatus status,
+            int authorizationVersion,
+            List<IdentityGrant> grantList
+    ) {
+        this.id = id;
+        this.username = username;
+        this.displayName = displayName;
+        this.schoolId = schoolId;
+        this.staffId = staffId;
+        this.learnerId = learnerId;
+        this.status = status;
+        this.authorizationVersion = authorizationVersion;
         this.grantList = List.copyOf(grantList);
         this.authorityList = grantList.stream()
                 .map(IdentityGrant::permissionCode)
