@@ -152,9 +152,15 @@ this role on the next run. That is arguably the definition of the role, since a
 `BRANCH` ceiling means precisely "safe to delegate to a branch", but replace the
 select with a literal list if each addition should be deliberate.
 
-The role is created holding permissions and granted to nobody. Assignment is a
-separate step, and additionally requires the staff member to currently work at that
-branch.
+Assignment is a separate step from creation, and requires the staff member to
+currently work at the branch. That is not a convention but a foreign key: a
+branch-scoped grant points at `(staffId, branchId)` in the membership table, so a
+login cannot hold a branch role without a posting to that branch, and losing the
+posting removes the grant with it.
+
+The demo seed grants this role to one account per branch, granted by the school super
+admin. Those accounts and their passwords are listed in the local-and-demo section of
+`database/school-data.sql`, which is the single place credentials are written down.
 
 ### Still to define
 

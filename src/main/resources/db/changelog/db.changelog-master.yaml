@@ -21,3 +21,5 @@ databaseChangeLog:
       file: db/changelog/changes/010-seed-branch-license-class-read-permission.yaml
   - include:
       file: db/changelog/changes/011-seed-branch-super-admin-role.yaml
+  - include:
+      file: db/changelog/changes/012-seed-branch-super-admin-accounts.yaml

@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 033-seed-branch-super-admin-accounts
+      author: codex
+      context: demo
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: ../sql/033-seed-branch-super-admin-accounts.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
