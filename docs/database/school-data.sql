@@ -80,8 +80,9 @@ INSERT INTO public.r_permission (id, code, resource, action, max_scope_type, des
 	('40000000-0000-0000-0000-000000000002', 'branch:manage-status', 'branch', 'manage-status', 'SCHOOL', 'Activate or deactivate a branch, and set which branch is the head office'),
 	('40000000-0000-0000-0000-000000000003', 'branch-license-class:manage', 'branch-license-class', 'manage', 'BRANCH', 'Set which licence classes a branch offers and the price of each'),
 	('40000000-0000-0000-0000-000000000004', 'staff:read', 'staff', 'read', 'BRANCH', 'View staff records and their branch assignments'),
-	('40000000-0000-0000-0000-000000000005', 'branch:read', 'branch', 'read', 'BRANCH', 'View branch details, including contact numbers and licence class offerings'),
-	('40000000-0000-0000-0000-000000000006', 'branch:update', 'branch', 'update', 'BRANCH', 'Update branch details such as name, address, type and contact numbers')
+	('40000000-0000-0000-0000-000000000005', 'branch:read', 'branch', 'read', 'BRANCH', 'View branch details, including address and contact numbers'),
+	('40000000-0000-0000-0000-000000000006', 'branch:update', 'branch', 'update', 'BRANCH', 'Update branch details such as name, address, type and contact numbers'),
+	('40000000-0000-0000-0000-000000000007', 'branch-license-class:read', 'branch-license-class', 'read', 'BRANCH', 'View the licence classes a branch offers and the price of each')
 ON CONFLICT (code) DO UPDATE
 SET resource = EXCLUDED.resource,
 	action = EXCLUDED.action,

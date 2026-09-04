@@ -17,3 +17,5 @@ databaseChangeLog:
       file: db/changelog/changes/008-seed-elven-super-admin-account.yaml
   - include:
       file: db/changelog/changes/009-rename-app-user-to-identity.yaml
+  - include:
+      file: db/changelog/changes/010-seed-branch-license-class-read-permission.yaml

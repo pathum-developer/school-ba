@@ -37,9 +37,10 @@ Branch administration, the first set defined.
 | --- | --- | --- |
 | `branch:create` | `SCHOOL` | Create a branch or yard within the school |
 | `branch:manage-status` | `SCHOOL` | Activate or deactivate a branch, and set the head office |
-| `branch:read` | `BRANCH` | View branch details, including contact numbers and licence class offerings |
+| `branch:read` | `BRANCH` | View branch details, including address and contact numbers |
 | `branch:update` | `BRANCH` | Update branch details such as name, address, type and contact numbers |
 | `branch-license-class:manage` | `BRANCH` | Set which licence classes a branch offers, and the price of each |
+| `branch-license-class:read` | `BRANCH` | View the licence classes a branch offers and the price of each |
 | `staff:read` | `BRANCH` | View staff records and their branch assignments |
 
 Why the two ceilings differ:
@@ -58,6 +59,14 @@ Why the two ceilings differ:
 - `branch-license-class:manage` reaches branch scope so a branch may manage its own
   offering. Note this includes pricing; if prices are meant to be set centrally,
   raise the ceiling to `SCHOOL`.
+- `branch-license-class:read` is separate from `branch:read` because the offering
+  carries what the branch charges, which is commercially sensitive in a way that an
+  address and a telephone number are not. Splitting the read is what lets a role look
+  up a branch without seeing its pricing. It shares the `BRANCH` ceiling of the manage
+  code, since a branch that may set its own offering must be able to read it.
+- Neither licence class code covers `r_license_class`. That is the Department of Motor
+  Traffic's list of classes: platform-wide reference data, identical for every school,
+  and not gated by a permission.
 - `staff:read` and `branch:read` reach branch scope so a branch role sees its own
   branch, while a school role sees all of them, using the same code.
 
@@ -81,7 +90,7 @@ Why the two ceilings differ:
 `school-super-admin`, scope `SCHOOL`, audience `STAFF`, system role.
 
 Full administrative access within one school. Holds every permission a school-scoped
-role is allowed to hold, which today is all six.
+role is allowed to hold, which today is all seven.
 
 There is **one role row per school**, not one shared role. Roles are school-owned, so
 a school-scoped row must name its school, and an unowned role would break the foreign

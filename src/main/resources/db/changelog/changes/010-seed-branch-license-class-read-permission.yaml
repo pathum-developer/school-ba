@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 031-seed-branch-license-class-read-permission
+      author: codex
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: ../sql/031-seed-branch-license-class-read-permission.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
