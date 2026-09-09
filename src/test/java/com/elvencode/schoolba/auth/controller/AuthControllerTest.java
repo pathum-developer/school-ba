@@ -54,6 +54,7 @@ class AuthControllerTest {
      */
     private static final List<String> EXPECTED_PERMISSION_CODE_LIST = List.of(
             "branch-license-class:manage",
+            "branch-license-class:read",
             "branch:create",
             "branch:manage-status",
             "branch:read",
@@ -79,7 +80,7 @@ class AuthControllerTest {
         assertEquals(USERNAME, claims.get(ApplicationConstant.JWT_USERNAME_CLAIM, String.class));
         assertEquals(SCHOOL_ID, claims.get(ApplicationConstant.JWT_SCHOOL_ID_CLAIM, String.class));
         assertEquals(STAFF_ID, claims.get(ApplicationConstant.JWT_STAFF_ID_CLAIM, String.class));
-        assertEquals(1, claims.get(ApplicationConstant.JWT_AUTHORIZATION_VERSION_CLAIM, Integer.class));
+        assertEquals(2, claims.get(ApplicationConstant.JWT_AUTHORIZATION_VERSION_CLAIM, Integer.class));
 
         // A staff login has no learner, and the claim is left out rather than written as null.
         assertNull(claims.get(ApplicationConstant.JWT_LEARNER_ID_CLAIM, String.class));
