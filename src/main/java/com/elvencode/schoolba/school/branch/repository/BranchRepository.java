@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.elvencode.schoolba.school.branch.dto.BranchLicenceClassDto;
 import com.elvencode.schoolba.school.branch.entity.Branch;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -32,19 +33,24 @@ public interface BranchRepository extends JpaRepository<Branch, UUID> {
             @Param("code") String code
     );
 
-    @Query(
-            value = """
-                    select branch.*
-                    from m_branch branch
-                    join m_school school on school.id = branch.school_id
-                    where school.id = :schoolId
-                            and branch.code = :code
-                    """,
-            nativeQuery = true
-    )
-    Optional<Branch> findDetailedBySchool_IdAndCodeUsingNativeQuery(
+    @Query("""
+            select new com.elvencode.schoolba.school.branch.dto.BranchLicenceClassDto(
+                    licenseClass.code,
+                    licenseClass.name,
+                    branchLicenseClass.priceLkr
+            )
+            from BranchLicenseClass branchLicenseClass
+            join branchLicenseClass.branch branch
+            join branch.school school
+            join branchLicenseClass.licenseClass licenseClass
+            where school.id = :schoolId
+                    and branch.code = :branchCode
+                    and licenseClass.active = true
+            order by licenseClass.displayOrder asc
+            """)
+    List<BranchLicenceClassDto> findLicenceClassListBySchoolIdAndBranchCode(
             @Param("schoolId") UUID schoolId,
-            @Param("code") String code
+            @Param("branchCode") String branchCode
     );
 
     @Query("""

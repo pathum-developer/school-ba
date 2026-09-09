@@ -8,6 +8,7 @@ import com.elvencode.schoolba.common.constants.CacheConstant;
 import com.elvencode.schoolba.common.exception.DuplicateResourceException;
 import com.elvencode.schoolba.common.exception.ResourceNotFoundException;
 import com.elvencode.schoolba.school.branch.dto.BranchDto;
+import com.elvencode.schoolba.school.branch.dto.BranchLicenceClassDto;
 import com.elvencode.schoolba.school.branch.dto.request.PatchBranchDetailsRequest;
 import com.elvencode.schoolba.school.branch.dto.request.SaveBranchDetailsRequest;
 import com.elvencode.schoolba.school.branch.entity.Branch;
@@ -110,6 +111,22 @@ public class BranchServiceImpl implements IBranchService {
         }
 
         return branchMapper.toBranchDtoList(branchList);
+    }
+
+    @Override
+    public List<BranchLicenceClassDto> findLicenceClassListByBranchCode(UUID schoolId, String branchCode) {
+        UUID requiredSchoolId = requireId(schoolId, "school id");
+        String requiredBranchCode = normalizeCode(branchCode, "branch code");
+
+        List<BranchLicenceClassDto> licenceClassList =
+                branchRepository.findLicenceClassListBySchoolIdAndBranchCode(requiredSchoolId, requiredBranchCode);
+
+        if (licenceClassList.isEmpty()
+                && !branchRepository.existsBySchool_IdAndCode(requiredSchoolId, requiredBranchCode)) {
+            throw branchNotFound(requiredSchoolId, requiredBranchCode);
+        }
+
+        return licenceClassList;
     }
 
     @Override

@@ -4,13 +4,16 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
+import com.elvencode.schoolba.auth.constants.PermissionCode;
 import com.elvencode.schoolba.school.branch.dto.BranchDto;
+import com.elvencode.schoolba.school.branch.dto.BranchLicenceClassDto;
 import com.elvencode.schoolba.school.branch.dto.request.PatchBranchDetailsRequest;
 import com.elvencode.schoolba.school.branch.dto.request.SaveBranchDetailsRequest;
 import com.elvencode.schoolba.school.branch.service.IBranchService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -41,6 +45,18 @@ public class BranchController {
             @PathVariable UUID schoolId
     ) {
         return ResponseEntity.ok(branchService.findActiveBranchesBySchoolId(schoolId));
+    }
+
+    @GetMapping(value = "/licence-classes", version = API_VERSION_1_BASELINE)
+    @PreAuthorize("@permissionAuthorizationService.hasBranchPermission(authentication, #schoolId, #branchCode, '"
+            + PermissionCode.BRANCH_LICENSE_CLASS_READ + "')")
+    public ResponseEntity<List<BranchLicenceClassDto>> findLicenceClassListByBranchCode(
+            @PathVariable UUID schoolId,
+            @RequestParam
+            @Pattern(regexp = BRANCH_CODE_REGEXP, message = BRANCH_CODE_MESSAGE)
+            String branchCode
+    ) {
+        return ResponseEntity.ok(branchService.findLicenceClassListByBranchCode(schoolId, branchCode));
     }
 
     @GetMapping(value = "/{branchCode}", version = API_VERSION_1_BASELINE)

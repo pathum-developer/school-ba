@@ -1,5 +1,15 @@
 # API Contracts
 
+## Branches
+
+`GET /schools/{schoolId}/branches/licence-classes?branchCode={branchCode}`
+
+- Returns the active licence classes taught by the requested branch.
+- Branch code is scoped to the school identified by `schoolId`.
+- Requires `branch-license-class:read` at platform scope, matching school scope, or matching branch scope.
+- Must not expose branch offerings from another school.
+- Returns an empty list when the branch exists but has no licence class offerings.
+
 ## Learners
 
 `POST /schools/{schoolCode}/learners`
