@@ -47,6 +47,17 @@ public interface BranchRepository extends JpaRepository<Branch, UUID> {
             @Param("code") String code
     );
 
+    @Query("""
+            select branch.id
+            from Branch branch
+            where branch.school.id = :schoolId
+                    and branch.code = :branchCode
+            """)
+    Optional<UUID> findIdBySchoolIdAndCode(
+            @Param("schoolId") UUID schoolId,
+            @Param("branchCode") String branchCode
+    );
+
     boolean existsBySchool_IdAndCode(UUID schoolId, String code);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
